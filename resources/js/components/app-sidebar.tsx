@@ -3,17 +3,9 @@ import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 import { type NavItem } from '@/types';
-import { Link } from '@inertiajs/react';
-import { BookOpen, Folder, LayoutGrid } from 'lucide-react';
+import { Link, usePage } from '@inertiajs/react';
+import { BookOpen, Folder, LayoutGrid, Users, ClipboardCheck } from 'lucide-react';
 import AppLogo from './app-logo';
-
-const mainNavItems: NavItem[] = [
-    {
-        title: 'Dashboard',
-        url: '/dashboard',
-        icon: LayoutGrid,
-    },
-];
 
 const footerNavItems: NavItem[] = [
     {
@@ -29,13 +21,46 @@ const footerNavItems: NavItem[] = [
 ];
 
 export function AppSidebar() {
+    const { auth } = usePage<any>().props;
+    const userRole = auth?.user?.role;
+
+    const mainNavItems: NavItem[] = [];
+
+    if (userRole === 'admin') {
+        mainNavItems.push(
+            {
+                title: 'Admin Dashboard',
+                url: '/admin/dashboard',
+                icon: LayoutGrid,
+            },
+            {
+                title: 'Manage Users',
+                url: '/admin/users',
+                icon: Users,
+            },
+            {
+                title: 'Moderate Products',
+                url: '/admin/products',
+                icon: ClipboardCheck,
+            }
+        );
+    } else {
+        mainNavItems.push({
+            title: 'Dashboard',
+            url: '/dashboard',
+            icon: LayoutGrid,
+        });
+    }
+
+    const homeUrl = userRole === 'admin' ? '/admin/dashboard' : '/dashboard';
+
     return (
         <Sidebar collapsible="icon" variant="inset">
             <SidebarHeader>
                 <SidebarMenu>
                     <SidebarMenuItem>
                         <SidebarMenuButton size="lg" asChild>
-                            <Link href="/dashboard" prefetch>
+                            <Link href={homeUrl} prefetch>
                                 <AppLogo />
                             </Link>
                         </SidebarMenuButton>
