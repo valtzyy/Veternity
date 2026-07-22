@@ -21,6 +21,14 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'role',
+        'phone',
+        'address',
+        'profile_photo',
+        'average_rating',
+        'total_reviews',
+        'response_rate',
+        'is_verified',
     ];
 
     /**
@@ -30,7 +38,6 @@ class User extends Authenticatable
      */
     protected $hidden = [
         'password',
-        'remember_token',
     ];
 
     /**
@@ -41,8 +48,35 @@ class User extends Authenticatable
     protected function casts(): array
     {
         return [
-            'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'is_verified' => 'boolean',
+            'average_rating' => 'decimal:2',
+            'total_reviews' => 'integer',
+            'response_rate' => 'decimal:2',
         ];
+    }
+
+    /**
+     * Check if user is an admin.
+     */
+    public function isAdmin(): bool
+    {
+        return $this->role === 'admin';
+    }
+
+    /**
+     * Check if user is a seller.
+     */
+    public function isSeller(): bool
+    {
+        return $this->role === 'seller';
+    }
+
+    /**
+     * Check if user is a buyer.
+     */
+    public function isBuyer(): bool
+    {
+        return $this->role === 'buyer';
     }
 }
