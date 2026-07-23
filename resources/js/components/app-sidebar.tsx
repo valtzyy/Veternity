@@ -1,7 +1,7 @@
 import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
-import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
+import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from '@/components/ui/sidebar';
 import { type NavItem } from '@/types';
 import { Link, usePage } from '@inertiajs/react';
 import { BookOpen, Folder, LayoutGrid, Users, ClipboardCheck } from 'lucide-react';
@@ -23,6 +23,7 @@ const footerNavItems: NavItem[] = [
 export function AppSidebar() {
     const { auth } = usePage<any>().props;
     const userRole = auth?.user?.role;
+    const { toggleSidebar } = useSidebar();
 
     const mainNavItems: NavItem[] = [];
 
@@ -44,6 +45,34 @@ export function AppSidebar() {
                 icon: ClipboardCheck,
             }
         );
+    } else if (userRole === 'seller') {
+        mainNavItems.push(
+            {
+                title: 'Dashboard',
+                url: '/dashboard',
+                icon: LayoutGrid,
+            },
+            {
+                title: 'Produk Saya',
+                url: '/seller/products',
+                icon: ClipboardCheck, // Let's use Package or similar if imported, or ClipboardCheck
+            },
+            {
+                title: 'Pesanan',
+                url: '/seller/orders',
+                icon: BookOpen,
+            },
+            {
+                title: 'Negosiasi',
+                url: '/seller/negotiations',
+                icon: Users,
+            },
+            {
+                title: 'Analitik',
+                url: '/seller/analytics',
+                icon: LayoutGrid,
+            }
+        );
     } else {
         mainNavItems.push({
             title: 'Dashboard',
@@ -59,10 +88,8 @@ export function AppSidebar() {
             <SidebarHeader>
                 <SidebarMenu>
                     <SidebarMenuItem>
-                        <SidebarMenuButton size="lg" asChild>
-                            <Link href={homeUrl} prefetch>
-                                <AppLogo />
-                            </Link>
+                        <SidebarMenuButton size="lg" onClick={toggleSidebar} className="cursor-pointer">
+                            <AppLogo />
                         </SidebarMenuButton>
                     </SidebarMenuItem>
                 </SidebarMenu>
