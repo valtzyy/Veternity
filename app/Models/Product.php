@@ -96,6 +96,14 @@ class Product extends Model
     }
 
     /**
+     * Relationship: Product has many negotiations.
+     */
+    public function negotiations(): HasMany
+    {
+        return $this->hasMany(Negotiation::class);
+    }
+
+    /**
      * Scope: Filter by status 'available'.
      */
     public function scopeAvailable($query)
@@ -117,7 +125,7 @@ class Product extends Model
     protected function formattedPrice(): Attribute
     {
         return Attribute::make(
-            get: fn () => 'Rp ' . number_format($this->reference_price, 0, ',', '.')
+            get: fn () => 'Rp '.number_format($this->reference_price, 0, ',', '.')
         );
     }
 }

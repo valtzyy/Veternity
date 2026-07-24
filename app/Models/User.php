@@ -3,13 +3,15 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
 class User extends Authenticatable
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
+    /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
 
     /**
@@ -78,5 +80,21 @@ class User extends Authenticatable
     public function isBuyer(): bool
     {
         return $this->role === 'buyer';
+    }
+
+    /**
+     * Relationship: Buyer negotiations.
+     */
+    public function buyerNegotiations(): HasMany
+    {
+        return $this->hasMany(Negotiation::class, 'buyer_id');
+    }
+
+    /**
+     * Relationship: Seller negotiations.
+     */
+    public function sellerNegotiations(): HasMany
+    {
+        return $this->hasMany(Negotiation::class, 'seller_id');
     }
 }
