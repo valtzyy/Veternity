@@ -52,13 +52,25 @@ class ProductController extends Controller
             'reference_price' => 'required|numeric|gt:0',
             'minimum_order' => 'required|integer|gte:1',
             'stock' => 'required|integer|gte:0',
-            'unit' => 'required|in:kg,liter,pcs,box',
+            'unit' => 'required|in:kg,liter,pcs,box,ton',
             'category_id' => 'required|exists:categories,id',
-            'condition' => 'required|in:fresh,usable,near_expired',
+            'condition' => 'nullable|string',
             'location' => 'required|string|max:255',
+            'province' => 'nullable|string|max:255',
+            'availability' => 'nullable|string|max:255',
+            'notes' => 'nullable|string',
             'images' => 'required|array|min:1|max:5',
             'images.*' => 'image|max:5120', // max 5MB per image
         ]);
+
+        // Map custom condition input to db enum
+        $dbCondition = 'usable';
+        $conditionLower = strtolower($validated['condition'] ?? '');
+        if (str_contains($conditionLower, 'segar') || str_contains($conditionLower, 'fresh')) {
+            $dbCondition = 'fresh';
+        } elseif (str_contains($conditionLower, 'expired') || str_contains($conditionLower, 'kedaluwarsa') || str_contains($conditionLower, 'hampir')) {
+            $dbCondition = 'near_expired';
+        }
 
         // Create the product as pending review
         $product = Product::create([
@@ -71,7 +83,13 @@ class ProductController extends Controller
             'stock' => $validated['stock'],
             'unit' => $validated['unit'],
             'location' => $validated['location'],
-            'condition' => $validated['condition'],
+            'condition' => $dbCondition,
+            'knowledge' => [
+                'province' => $request->input('province'),
+                'availability' => $request->input('availability', 'Harian'),
+                'custom_condition' => $request->input('condition'),
+                'notes' => $request->input('notes'),
+            ],
             'status' => 'pending_review',
         ]);
 
@@ -130,13 +148,25 @@ class ProductController extends Controller
             'reference_price' => 'required|numeric|gt:0',
             'minimum_order' => 'required|integer|gte:1',
             'stock' => 'required|integer|gte:0',
-            'unit' => 'required|in:kg,liter,pcs,box',
+            'unit' => 'required|in:kg,liter,pcs,box,ton',
             'category_id' => 'required|exists:categories,id',
-            'condition' => 'required|in:fresh,usable,near_expired',
+            'condition' => 'nullable|string',
             'location' => 'required|string|max:255',
+            'province' => 'nullable|string|max:255',
+            'availability' => 'nullable|string|max:255',
+            'notes' => 'nullable|string',
             'images' => 'nullable|array|max:5',
             'images.*' => 'image|max:5120',
         ]);
+
+        // Map custom condition input to db enum
+        $dbCondition = 'usable';
+        $conditionLower = strtolower($validated['condition'] ?? '');
+        if (str_contains($conditionLower, 'segar') || str_contains($conditionLower, 'fresh')) {
+            $dbCondition = 'fresh';
+        } elseif (str_contains($conditionLower, 'expired') || str_contains($conditionLower, 'kedaluwarsa') || str_contains($conditionLower, 'hampir')) {
+            $dbCondition = 'near_expired';
+        }
 
         $product->update([
             'category_id' => $validated['category_id'],
@@ -147,7 +177,13 @@ class ProductController extends Controller
             'stock' => $validated['stock'],
             'unit' => $validated['unit'],
             'location' => $validated['location'],
-            'condition' => $validated['condition'],
+            'condition' => $dbCondition,
+            'knowledge' => [
+                'province' => $request->input('province'),
+                'availability' => $request->input('availability', 'Harian'),
+                'custom_condition' => $request->input('condition'),
+                'notes' => $request->input('notes'),
+            ],
         ]);
 
         // Upload new images if present

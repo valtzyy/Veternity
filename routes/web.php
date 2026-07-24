@@ -7,6 +7,8 @@ use App\Http\Controllers\ProductController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [HomeController::class, 'index'])->name('home');
+Route::get('/marketplace', [HomeController::class, 'marketplace'])->name('marketplace');
+Route::get('/products/{product}', [HomeController::class, 'show'])->name('products.show');
 
 Route::middleware(['auth'])->group(function () {
     Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');

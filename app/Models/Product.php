@@ -48,6 +48,7 @@ class Product extends Model
             'stock' => 'integer',
             'view_count' => 'integer',
             'expired_at' => 'datetime',
+            'knowledge' => 'array',
             'created_at' => 'datetime',
             'updated_at' => 'datetime',
             'deleted_at' => 'datetime',
@@ -117,7 +118,7 @@ class Product extends Model
     protected function formattedPrice(): Attribute
     {
         return Attribute::make(
-            get: fn () => 'Rp ' . number_format($this->reference_price, 0, ',', '.')
+            get: fn () => 'Rp '.number_format($this->reference_price, 0, ',', '.')
         );
     }
 }

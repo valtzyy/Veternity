@@ -4,7 +4,7 @@ import { NavUser } from '@/components/nav-user';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from '@/components/ui/sidebar';
 import { type NavItem } from '@/types';
 import { Link, usePage } from '@inertiajs/react';
-import { BookOpen, Folder, LayoutGrid, Users, ClipboardCheck } from 'lucide-react';
+import { BookOpen, Folder, LayoutGrid, Users, ClipboardCheck, ShoppingBag, MessageSquare, Star } from 'lucide-react';
 import AppLogo from './app-logo';
 
 const footerNavItems: NavItem[] = [
@@ -55,7 +55,7 @@ export function AppSidebar() {
             {
                 title: 'Produk Saya',
                 url: '/seller/products',
-                icon: ClipboardCheck, // Let's use Package or similar if imported, or ClipboardCheck
+                icon: ClipboardCheck,
             },
             {
                 title: 'Pesanan',
@@ -74,11 +74,38 @@ export function AppSidebar() {
             }
         );
     } else {
-        mainNavItems.push({
-            title: 'Dashboard',
-            url: '/dashboard',
-            icon: LayoutGrid,
-        });
+        mainNavItems.push(
+            {
+                title: 'Dashboard',
+                url: '/dashboard',
+                icon: LayoutGrid,
+            },
+            {
+                title: 'Marketplace',
+                url: '/marketplace',
+                icon: ShoppingBag,
+            },
+            {
+                title: 'Pesanan Saya',
+                url: '/buyer/orders',
+                icon: ClipboardCheck,
+            },
+            {
+                title: 'Negosiasi',
+                url: '/buyer/negotiations',
+                icon: MessageSquare,
+            },
+            {
+                title: 'Favorit',
+                url: '/buyer/favorites',
+                icon: Star,
+            },
+            {
+                title: 'Profil Bisnis',
+                url: '/buyer/profile',
+                icon: Users,
+            }
+        );
     }
 
     const homeUrl = userRole === 'admin' ? '/admin/dashboard' : '/dashboard';
