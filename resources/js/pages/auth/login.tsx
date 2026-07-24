@@ -3,11 +3,11 @@ import { Head, Link, useForm } from '@inertiajs/react';
 import { ArrowRight, Eye, EyeOff, Leaf, Lock, Mail, Star } from 'lucide-react';
 import { FormEventHandler, useState } from 'react';
 
-interface LoginForm {
+type LoginForm = {
     email: string;
     password: string;
     remember: boolean;
-}
+};
 
 interface LoginProps {
     status?: string;
