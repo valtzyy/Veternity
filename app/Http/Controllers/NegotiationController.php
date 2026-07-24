@@ -51,16 +51,17 @@ class NegotiationController extends Controller
         $product = Product::findOrFail($request->product_id);
         $buyerId = Auth::id();
         $sellerId = $product->seller_id;
+        $user = Auth::user();
 
-        if ($buyerId === $sellerId) {
-            return back()->withErrors(['product_id' => 'Anda tidak dapat membuat negosiasi untuk produk Anda sendiri.']);
+        if ($user->role !== 'buyer') {
+            abort(403, 'Hanya buyer yang dapat memulai negosiasi.');
         }
 
         // Check if active negotiation already exists
         $existingNegotiation = Negotiation::where('product_id', $product->id)
             ->where('buyer_id', $buyerId)
             ->where('seller_id', $sellerId)
-            ->whereIn('status', ['pending', 'negotiating'])
+            ->whereIn('status', ['negotiating'])
             ->first();
 
         if ($existingNegotiation) {
