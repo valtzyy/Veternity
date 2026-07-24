@@ -20,7 +20,7 @@ import { FormEventHandler, useState } from 'react';
 
 type Role = 'buyer' | 'seller';
 
-interface RegisterForm {
+type RegisterForm = {
     name: string;
     email: string;
     phone: string;
@@ -28,7 +28,7 @@ interface RegisterForm {
     address: string;
     role: Role;
     agree: boolean;
-}
+};
 
 const STEPS = ['Pilih Peran', 'Informasi Akun', 'Profil Bisnis'];
 
