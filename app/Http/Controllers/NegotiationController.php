@@ -106,6 +106,7 @@ class NegotiationController extends Controller
             'buyer',
             'seller',
             'messages.sender',
+            'order.invoice',
         ]);
 
         // List active negotiations for the right sidebar

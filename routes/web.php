@@ -5,6 +5,7 @@ use App\Http\Controllers\ChatMessageController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\NegotiationController;
+use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\ProductController;
 use Illuminate\Support\Facades\Route;
 
@@ -33,6 +34,13 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/negotiations', [NegotiationController::class, 'index'])->name('negotiations.index');
     Route::post('/negotiations', [NegotiationController::class, 'store'])->name('negotiations.store');
     Route::get('/negotiations/{negotiation}', [NegotiationController::class, 'show'])->name('negotiations.show');
+
+    // Checkout & Payment simulation
+    Route::get('/negotiations/{negotiation}/checkout', [PaymentController::class, 'showCheckout'])->name('negotiations.checkout');
+    Route::post('/negotiations/{negotiation}/checkout', [PaymentController::class, 'processCheckout'])->name('negotiations.checkout.store');
+    Route::get('/orders/{order}/payment', [PaymentController::class, 'showPayment'])->name('orders.payment');
+    Route::post('/orders/{order}/payment', [PaymentController::class, 'processPayment'])->name('orders.payment.store');
+    Route::get('/invoices/{invoice}', [PaymentController::class, 'showInvoice'])->name('invoices.show');
 
     // Chat messages & offer actions
     Route::post('/negotiations/{negotiation}/messages', [ChatMessageController::class, 'store'])->name('negotiations.messages.store');

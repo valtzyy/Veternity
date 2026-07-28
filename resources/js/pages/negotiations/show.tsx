@@ -5,6 +5,7 @@ import {
     Check,
     CheckCircle2,
     Clock,
+    CreditCard,
     DollarSign,
     Home,
     Image as ImageIcon,
@@ -366,29 +367,69 @@ export default function NegotiationShow({
                             TINDAKAN CEPAT
                         </h3>
 
-                        <button
-                            type="button"
-                            disabled={!canRespondToPendingOffer}
-                            onClick={() => latestPendingOffer && handleAcceptOffer(latestPendingOffer.id)}
-                            className="flex w-full items-center justify-center gap-2 rounded-full bg-emerald-700 px-4 py-3 text-sm font-semibold text-white shadow-xs transition-colors hover:bg-emerald-800 disabled:opacity-40"
-                        >
-                            <ThumbsUp className="h-4 w-4" />
-                            Terima Penawaran
-                        </button>
+                        {negotiation.order ? (
+                            negotiation.order.status === 'paid' ? (
+                                <Link
+                                    href={route('invoices.show', negotiation.order.invoice?.id)}
+                                    className="flex w-full items-center justify-center gap-2 rounded-full bg-[#f0f7f1] text-[#2e5a36] border border-[#2e5a36]/20 px-4 py-3 text-sm font-semibold shadow-xs transition-all hover:bg-emerald-50"
+                                >
+                                    <ShoppingBag className="h-4 w-4" />
+                                    Lihat Bukti Pembayaran
+                                </Link>
+                            ) : isBuyer ? (
+                                <Link
+                                    href={route('orders.payment', negotiation.order.id)}
+                                    className="flex w-full items-center justify-center gap-2 rounded-full bg-emerald-700 px-4 py-3 text-sm font-semibold text-white shadow-md transition-all hover:bg-emerald-800"
+                                >
+                                    <CreditCard className="h-4 w-4" />
+                                    Bayar Sekarang
+                                </Link>
+                            ) : (
+                                <div className="text-center p-3 bg-slate-50 rounded-2xl border border-slate-100 text-xs font-semibold text-slate-500 leading-relaxed">
+                                    Menunggu pembayaran dari pembeli.
+                                </div>
+                            )
+                        ) : negotiation.status === 'agreed' ? (
+                            isBuyer ? (
+                                <Link
+                                    href={route('negotiations.checkout', negotiation.id)}
+                                    className="flex w-full items-center justify-center gap-2 rounded-full bg-emerald-700 px-4 py-3 text-sm font-semibold text-white shadow-md transition-all hover:bg-emerald-800"
+                                >
+                                    <CreditCard className="h-4 w-4" />
+                                    Lanjut ke Pembayaran
+                                </Link>
+                            ) : (
+                                <div className="text-center p-3 bg-slate-50 rounded-2xl border border-slate-100 text-xs font-semibold text-slate-500 leading-relaxed">
+                                    Negosiasi telah disetujui! Menunggu pembayaran dari pembeli.
+                                </div>
+                            )
+                        ) : (
+                            <>
+                                <button
+                                    type="button"
+                                    disabled={!canRespondToPendingOffer}
+                                    onClick={() => latestPendingOffer && handleAcceptOffer(latestPendingOffer.id)}
+                                    className="flex w-full items-center justify-center gap-2 rounded-full bg-emerald-700 px-4 py-3 text-sm font-semibold text-white shadow-xs transition-colors hover:bg-emerald-800 disabled:opacity-40 cursor-pointer"
+                                >
+                                    <ThumbsUp className="h-4 w-4" />
+                                    Terima Penawaran
+                                </button>
+
+                                <button
+                                    type="button"
+                                    disabled={!canRespondToPendingOffer}
+                                    onClick={() => latestPendingOffer && handleRejectOffer(latestPendingOffer.id)}
+                                    className="flex w-full items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 disabled:opacity-40 cursor-pointer"
+                                >
+                                    <ThumbsDown className="h-4 w-4 text-rose-500" />
+                                    Tolak Negosiasi
+                                </button>
+                            </>
+                        )}
 
                         <button
                             type="button"
-                            disabled={!canRespondToPendingOffer}
-                            onClick={() => latestPendingOffer && handleRejectOffer(latestPendingOffer.id)}
-                            className="flex w-full items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 disabled:opacity-40"
-                        >
-                            <ThumbsDown className="h-4 w-4 text-rose-500" />
-                            Tolak Negosiasi
-                        </button>
-
-                        <button
-                            type="button"
-                            className="flex w-full items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50"
+                            className="flex w-full items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 cursor-pointer"
                         >
                             <ShieldAlert className="h-4 w-4 text-slate-400" />
                             Laporkan Masalah
@@ -712,40 +753,7 @@ export default function NegotiationShow({
                         </div>
                     </div>
 
-                    {/* Floating Action Pills (Bottom Right matching Figma) */}
-                    <div className="mt-auto flex flex-col items-end gap-2.5 pt-4">
-                        <Link
-                            href="#"
-                            className="flex items-center gap-2 rounded-full border border-slate-100 bg-white px-4 py-2 text-xs font-semibold text-slate-700 shadow-md transition-all hover:bg-slate-50 hover:shadow-lg"
-                        >
-                            <Package className="h-4 w-4 text-slate-500" />
-                            Detail Produk
-                        </Link>
 
-                        <Link
-                            href="#"
-                            className="flex items-center gap-2 rounded-full bg-emerald-800 px-4 py-2 text-xs font-semibold text-white shadow-md transition-all hover:bg-emerald-900 hover:shadow-lg"
-                        >
-                            <ShoppingBag className="h-4 w-4" />
-                            Pembayaran
-                        </Link>
-
-                        <Link
-                            href="#"
-                            className="flex items-center gap-2 rounded-full bg-slate-800 px-4 py-2 text-xs font-semibold text-white shadow-md transition-all hover:bg-slate-900 hover:shadow-lg"
-                        >
-                            <Store className="h-4 w-4" />
-                            Supplier Dashboard
-                        </Link>
-
-                        <Link
-                            href="/"
-                            className="flex items-center gap-2 rounded-full border border-slate-100 bg-white px-4 py-2 text-xs font-semibold text-slate-700 shadow-md transition-all hover:bg-slate-50 hover:shadow-lg"
-                        >
-                            <Home className="h-4 w-4 text-slate-500" />
-                            Beranda
-                        </Link>
-                    </div>
                 </aside>
             </main>
 
