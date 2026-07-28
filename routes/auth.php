@@ -8,6 +8,8 @@ use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\Auth\VerifyEmailController;
+use App\Models\User;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -36,9 +38,12 @@ Route::middleware('guest')->group(function () {
 });
 
 Route::middleware('auth')->group(function () {
-    Route::get('register/success', function () {
+    Route::get('register/success', function (Request $request) {
+        /** @var User $user */
+        $user = $request->user();
+
         return Inertia::render('auth/register-success', [
-            'user' => auth()->user()->only('name', 'email', 'role'),
+            'user' => $user->only('name', 'email', 'role'),
         ]);
     })->name('register.success');
     Route::get('verify-email', EmailVerificationPromptController::class)

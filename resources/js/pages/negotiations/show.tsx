@@ -1,23 +1,17 @@
+import { type SharedData } from '@/types';
 import { Head, Link, useForm, usePage } from '@inertiajs/react';
 import {
-    ArrowLeft,
-    BadgeCheck,
     Check,
     CheckCircle2,
     Clock,
     CreditCard,
     DollarSign,
-    Home,
-    Image as ImageIcon,
-    Info,
     Leaf,
     MessageCircle,
-    Package,
     Phone,
     Send,
     ShieldAlert,
     ShoppingBag,
-    Store,
     ThumbsDown,
     ThumbsUp,
     X,
@@ -63,6 +57,23 @@ interface ChatMessage {
     sender?: User;
 }
 
+interface Invoice {
+    id: number;
+    order_id: number;
+    invoice_number: string;
+    invoice_url?: string;
+}
+
+interface Order {
+    id: number;
+    negotiation_id: number;
+    order_number: string;
+    final_price: number;
+    final_quantity: number;
+    status: string;
+    invoice?: Invoice;
+}
+
 interface Negotiation {
     id: number;
     product_id: number;
@@ -76,6 +87,7 @@ interface Negotiation {
     buyer?: User;
     seller?: User;
     messages?: ChatMessage[];
+    order?: Order;
 }
 
 interface ShowProps {
@@ -87,16 +99,9 @@ interface ShowProps {
     activeNegotiations: Negotiation[];
 }
 
-export default function NegotiationShow({
-    negotiation,
-    product,
-    buyer,
-    seller,
-    chatMessages,
-    activeNegotiations,
-}: ShowProps) {
-    const page = usePage();
-    const authUser = (page.props as any).auth.user;
+export default function NegotiationShow({ negotiation, product, buyer, seller, chatMessages, activeNegotiations }: ShowProps) {
+    const { auth } = usePage<SharedData>().props;
+    const authUser = auth.user;
 
     const isBuyer = authUser?.id === buyer.id;
     const partner = isBuyer ? seller : buyer;
@@ -131,15 +136,12 @@ export default function NegotiationShow({
     const handleSubmitOffer: FormEventHandler = (e) => {
         e.preventDefault();
         if (counterTargetMessage) {
-            offerForm.post(
-                route('negotiations.messages.counter', [negotiation.id, counterTargetMessage.id]),
-                {
-                    onSuccess: () => {
-                        setIsOfferModalOpen(false);
-                        setCounterTargetMessage(null);
-                    },
-                }
-            );
+            offerForm.post(route('negotiations.messages.counter', [negotiation.id, counterTargetMessage.id]), {
+                onSuccess: () => {
+                    setIsOfferModalOpen(false);
+                    setCounterTargetMessage(null);
+                },
+            });
         } else {
             offerForm.post(route('negotiations.messages.store', negotiation.id), {
                 onSuccess: () => setIsOfferModalOpen(false),
@@ -176,8 +178,7 @@ export default function NegotiationShow({
         .reverse()
         .find((m) => m.message_type === 'offer' && m.offer_status === 'pending');
 
-    const canRespondToPendingOffer =
-        latestPendingOffer && latestPendingOffer.sender_id !== authUser?.id;
+    const canRespondToPendingOffer = latestPendingOffer && latestPendingOffer.sender_id !== authUser?.id;
 
     // Helper for formatting currency
     const formatCurrency = (val?: number) => {
@@ -218,10 +219,7 @@ export default function NegotiationShow({
 
                     {/* Navigation / User links */}
                     <div className="flex items-center gap-4">
-                        <Link
-                            href={route('negotiations.index')}
-                            className="text-sm font-semibold text-slate-700 hover:text-slate-900"
-                        >
+                        <Link href={route('negotiations.index')} className="text-sm font-semibold text-slate-700 hover:text-slate-900">
                             Daftar Negosiasi
                         </Link>
                         <span className="text-xs font-semibold text-emerald-700">
@@ -250,10 +248,8 @@ export default function NegotiationShow({
                         </div>
                         <div>
                             <div className="mb-1 flex items-center justify-between gap-2">
-                                <h2 className="text-lg font-bold leading-snug text-slate-900">
-                                    {product.title}
-                                </h2>
-                                <span className="whitespace-nowrap rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-semibold text-emerald-700">
+                                <h2 className="text-lg leading-snug font-bold text-slate-900">{product.title}</h2>
+                                <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-semibold whitespace-nowrap text-emerald-700">
                                     Food Grade
                                 </span>
                             </div>
@@ -280,11 +276,9 @@ export default function NegotiationShow({
 
                     {/* Transaction Status Card */}
                     <div className="flex flex-col gap-4 rounded-2xl border border-slate-100 bg-white p-5 shadow-xs">
-                        <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                            STATUS TRANSAKSI
-                        </h3>
+                        <h3 className="text-xs font-bold tracking-wider text-slate-400 uppercase">STATUS TRANSAKSI</h3>
 
-                        <div className="relative flex flex-col gap-6 pl-7 before:absolute before:bottom-3 before:left-3 before:top-3 before:w-0.5 before:bg-slate-200">
+                        <div className="relative flex flex-col gap-6 pl-7 before:absolute before:top-3 before:bottom-3 before:left-3 before:w-0.5 before:bg-slate-200">
                             {/* Step 1 */}
                             <div className="relative flex items-center justify-between">
                                 <div className="absolute -left-7 z-10 flex h-6 w-6 items-center justify-center rounded-full bg-emerald-600 text-white">
@@ -306,17 +300,13 @@ export default function NegotiationShow({
                                 </div>
                                 <span
                                     className={`text-sm ${
-                                        negotiation.status === 'negotiating'
-                                            ? 'font-bold text-emerald-700'
-                                            : 'font-semibold text-slate-800'
+                                        negotiation.status === 'negotiating' ? 'font-bold text-emerald-700' : 'font-semibold text-slate-800'
                                     }`}
                                 >
                                     Negosiasi
                                 </span>
                                 {negotiation.status === 'negotiating' && (
-                                    <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700">
-                                        Aktif
-                                    </span>
+                                    <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700">Aktif</span>
                                 )}
                             </div>
 
@@ -324,26 +314,20 @@ export default function NegotiationShow({
                             <div className="relative flex items-center justify-between">
                                 <div
                                     className={`absolute -left-7 z-10 flex h-6 w-6 items-center justify-center rounded-full border-2 ${
-                                        negotiation.status === 'agreed'
-                                            ? 'border-emerald-600 bg-emerald-600 text-white'
-                                            : 'border-slate-300 bg-white'
+                                        negotiation.status === 'agreed' ? 'border-emerald-600 bg-emerald-600 text-white' : 'border-slate-300 bg-white'
                                     }`}
                                 >
                                     {negotiation.status === 'agreed' && <Check className="h-3.5 w-3.5" />}
                                 </div>
                                 <span
                                     className={`text-sm ${
-                                        negotiation.status === 'agreed'
-                                            ? 'font-bold text-emerald-700'
-                                            : 'font-medium text-slate-400'
+                                        negotiation.status === 'agreed' ? 'font-bold text-emerald-700' : 'font-medium text-slate-400'
                                     }`}
                                 >
                                     Pembayaran
                                 </span>
                                 {negotiation.status === 'agreed' && (
-                                    <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700">
-                                        Aktif
-                                    </span>
+                                    <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700">Aktif</span>
                                 )}
                             </div>
 
@@ -363,15 +347,13 @@ export default function NegotiationShow({
 
                     {/* Quick Actions Card */}
                     <div className="flex flex-col gap-3 rounded-2xl border border-slate-100 bg-white p-5 shadow-xs">
-                        <h3 className="mb-1 text-xs font-bold uppercase tracking-wider text-slate-400">
-                            TINDAKAN CEPAT
-                        </h3>
+                        <h3 className="mb-1 text-xs font-bold tracking-wider text-slate-400 uppercase">TINDAKAN CEPAT</h3>
 
                         {negotiation.order ? (
                             negotiation.order.status === 'paid' ? (
                                 <Link
                                     href={route('invoices.show', negotiation.order.invoice?.id)}
-                                    className="flex w-full items-center justify-center gap-2 rounded-full bg-[#f0f7f1] text-[#2e5a36] border border-[#2e5a36]/20 px-4 py-3 text-sm font-semibold shadow-xs transition-all hover:bg-emerald-50"
+                                    className="flex w-full items-center justify-center gap-2 rounded-full border border-[#2e5a36]/20 bg-[#f0f7f1] px-4 py-3 text-sm font-semibold text-[#2e5a36] shadow-xs transition-all hover:bg-emerald-50"
                                 >
                                     <ShoppingBag className="h-4 w-4" />
                                     Lihat Bukti Pembayaran
@@ -385,7 +367,7 @@ export default function NegotiationShow({
                                     Bayar Sekarang
                                 </Link>
                             ) : (
-                                <div className="text-center p-3 bg-slate-50 rounded-2xl border border-slate-100 text-xs font-semibold text-slate-500 leading-relaxed">
+                                <div className="rounded-2xl border border-slate-100 bg-slate-50 p-3 text-center text-xs leading-relaxed font-semibold text-slate-500">
                                     Menunggu pembayaran dari pembeli.
                                 </div>
                             )
@@ -399,7 +381,7 @@ export default function NegotiationShow({
                                     Lanjut ke Pembayaran
                                 </Link>
                             ) : (
-                                <div className="text-center p-3 bg-slate-50 rounded-2xl border border-slate-100 text-xs font-semibold text-slate-500 leading-relaxed">
+                                <div className="rounded-2xl border border-slate-100 bg-slate-50 p-3 text-center text-xs leading-relaxed font-semibold text-slate-500">
                                     Negosiasi telah disetujui! Menunggu pembayaran dari pembeli.
                                 </div>
                             )
@@ -409,7 +391,7 @@ export default function NegotiationShow({
                                     type="button"
                                     disabled={!canRespondToPendingOffer}
                                     onClick={() => latestPendingOffer && handleAcceptOffer(latestPendingOffer.id)}
-                                    className="flex w-full items-center justify-center gap-2 rounded-full bg-emerald-700 px-4 py-3 text-sm font-semibold text-white shadow-xs transition-colors hover:bg-emerald-800 disabled:opacity-40 cursor-pointer"
+                                    className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-emerald-700 px-4 py-3 text-sm font-semibold text-white shadow-xs transition-colors hover:bg-emerald-800 disabled:opacity-40"
                                 >
                                     <ThumbsUp className="h-4 w-4" />
                                     Terima Penawaran
@@ -419,7 +401,7 @@ export default function NegotiationShow({
                                     type="button"
                                     disabled={!canRespondToPendingOffer}
                                     onClick={() => latestPendingOffer && handleRejectOffer(latestPendingOffer.id)}
-                                    className="flex w-full items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 disabled:opacity-40 cursor-pointer"
+                                    className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 disabled:opacity-40"
                                 >
                                     <ThumbsDown className="h-4 w-4 text-rose-500" />
                                     Tolak Negosiasi
@@ -429,7 +411,7 @@ export default function NegotiationShow({
 
                         <button
                             type="button"
-                            className="flex w-full items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 cursor-pointer"
+                            className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50"
                         >
                             <ShieldAlert className="h-4 w-4 text-slate-400" />
                             Laporkan Masalah
@@ -451,7 +433,7 @@ export default function NegotiationShow({
                                     alt={partner.name}
                                     className="h-11 w-11 rounded-full object-cover"
                                 />
-                                <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-white bg-emerald-500" />
+                                <span className="absolute right-0 bottom-0 h-3 w-3 rounded-full border-2 border-white bg-emerald-500" />
                             </div>
                             <div>
                                 <div className="flex items-center gap-1.5">
@@ -467,9 +449,7 @@ export default function NegotiationShow({
                         <div className="flex items-center gap-3">
                             <span
                                 className={`flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-semibold ${
-                                    negotiation.status === 'agreed'
-                                        ? 'bg-emerald-100 text-emerald-800'
-                                        : 'bg-amber-100/70 text-amber-700'
+                                    negotiation.status === 'agreed' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100/70 text-amber-700'
                                 }`}
                             >
                                 <Clock className="h-3.5 w-3.5" />
@@ -485,7 +465,7 @@ export default function NegotiationShow({
                     <div className="flex-1 space-y-6 overflow-y-auto bg-slate-50/50 p-6">
                         {/* Date Divider */}
                         <div className="my-4 flex items-center justify-center">
-                            <span className="shadow-2xs rounded-full border border-slate-100 bg-white px-4 py-1 text-xs font-semibold text-slate-400">
+                            <span className="rounded-full border border-slate-100 bg-white px-4 py-1 text-xs font-semibold text-slate-400 shadow-2xs">
                                 Sesi Negosiasi ReGuna
                             </span>
                         </div>
@@ -512,11 +492,9 @@ export default function NegotiationShow({
                                     return (
                                         <div
                                             key={msg.id}
-                                            className={`flex flex-col gap-1 ${
-                                                isSelf ? 'ml-auto items-end' : 'mr-auto items-start'
-                                            } max-w-[85%]`}
+                                            className={`flex flex-col gap-1 ${isSelf ? 'ml-auto items-end' : 'mr-auto items-start'} max-w-[85%]`}
                                         >
-                                            <div className="shadow-2xs w-full rounded-2xl border border-blue-100 bg-blue-50/50 p-4">
+                                            <div className="w-full rounded-2xl border border-blue-100 bg-blue-50/50 p-4 shadow-2xs">
                                                 <div className="mb-3 flex items-center justify-between">
                                                     <div className="flex items-center gap-1.5 text-xs font-bold text-blue-600">
                                                         <MessageCircle className="h-4 w-4" />
@@ -536,20 +514,14 @@ export default function NegotiationShow({
                                                         {msg.offer_status?.toUpperCase()}
                                                     </span>
                                                 </div>
-                                                <p className="mb-3 text-xs text-slate-500">
-                                                    {isSelf ? 'Penawaran Anda:' : 'Penawaran dari mitra:'}
-                                                </p>
+                                                <p className="mb-3 text-xs text-slate-500">{isSelf ? 'Penawaran Anda:' : 'Penawaran dari mitra:'}</p>
                                                 <div className="grid grid-cols-3 gap-2">
                                                     <div>
                                                         <span className="block text-[11px] text-slate-400">Harga</span>
-                                                        <span className="text-sm font-bold text-emerald-700">
-                                                            {formatCurrency(msg.offer_price)}
-                                                        </span>
+                                                        <span className="text-sm font-bold text-emerald-700">{formatCurrency(msg.offer_price)}</span>
                                                     </div>
                                                     <div>
-                                                        <span className="block text-[11px] text-slate-400">
-                                                            Kuantitas
-                                                        </span>
+                                                        <span className="block text-[11px] text-slate-400">Kuantitas</span>
                                                         <span className="text-sm font-bold text-slate-800">
                                                             {msg.offer_quantity} {product.unit || 'kg'}
                                                         </span>
@@ -557,9 +529,7 @@ export default function NegotiationShow({
                                                     <div>
                                                         <span className="block text-[11px] text-slate-400">Total</span>
                                                         <span className="text-sm font-bold text-slate-900">
-                                                            {formatCurrency(
-                                                                (msg.offer_price || 0) * (msg.offer_quantity || 0)
-                                                            )}
+                                                            {formatCurrency((msg.offer_price || 0) * (msg.offer_quantity || 0))}
                                                         </span>
                                                     </div>
                                                 </div>
@@ -607,9 +577,7 @@ export default function NegotiationShow({
                                 return (
                                     <div
                                         key={msg.id}
-                                        className={`flex items-start gap-3 ${
-                                            isSelf ? 'ml-auto flex-row-reverse max-w-[85%]' : 'max-w-[85%]'
-                                        }`}
+                                        className={`flex items-start gap-3 ${isSelf ? 'ml-auto max-w-[85%] flex-row-reverse' : 'max-w-[85%]'}`}
                                     >
                                         {!isSelf && (
                                             <img
@@ -623,7 +591,7 @@ export default function NegotiationShow({
                                         )}
                                         <div className={`flex flex-col ${isSelf ? 'items-end' : 'items-start'}`}>
                                             <div
-                                                className={`shadow-2xs p-4 leading-relaxed text-sm ${
+                                                className={`p-4 text-sm leading-relaxed shadow-2xs ${
                                                     isSelf
                                                         ? 'rounded-2xl rounded-tr-xs bg-emerald-800 text-white'
                                                         : 'rounded-2xl rounded-tl-xs border border-amber-100/60 bg-amber-50/60 text-slate-800'
@@ -651,10 +619,7 @@ export default function NegotiationShow({
                     </div>
 
                     {/* Chat Input Bar */}
-                    <form
-                        onSubmit={handleSendMessage}
-                        className="flex items-center gap-3 border-t border-slate-100 bg-white p-4"
-                    >
+                    <form onSubmit={handleSendMessage} className="flex items-center gap-3 border-t border-slate-100 bg-white p-4">
                         <button
                             type="button"
                             disabled={negotiation.status === 'agreed'}
@@ -694,9 +659,7 @@ export default function NegotiationShow({
                     <div className="flex min-h-[500px] flex-col gap-4 rounded-2xl border border-slate-100 bg-white p-5 shadow-xs">
                         <div>
                             <h2 className="text-base font-bold text-slate-900">Negosiasi Aktif</h2>
-                            <p className="text-xs font-medium text-slate-400">
-                                {activeNegotiations ? activeNegotiations.length : 0} percakapan
-                            </p>
+                            <p className="text-xs font-medium text-slate-400">{activeNegotiations ? activeNegotiations.length : 0} percakapan</p>
                         </div>
 
                         <div className="flex flex-col divide-y divide-slate-100">
@@ -709,7 +672,7 @@ export default function NegotiationShow({
                                         <Link
                                             key={item.id}
                                             href={route('negotiations.show', item.id)}
-                                            className={`-mx-2 flex items-start gap-3 rounded-xl py-3 px-2 transition-colors ${
+                                            className={`-mx-2 flex items-start gap-3 rounded-xl px-2 py-3 transition-colors ${
                                                 isCurrent ? 'bg-slate-50/80 font-bold' : 'hover:bg-slate-50/50'
                                             }`}
                                         >
@@ -722,44 +685,32 @@ export default function NegotiationShow({
                                                     alt={itemPartner?.name || 'User'}
                                                     className="h-10 w-10 rounded-full object-cover"
                                                 />
-                                                <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-white bg-emerald-500" />
+                                                <span className="absolute right-0 bottom-0 h-2.5 w-2.5 rounded-full border-2 border-white bg-emerald-500" />
                                             </div>
                                             <div className="min-w-0 flex-1">
                                                 <div className="mb-0.5 flex items-center justify-between">
-                                                    <h3 className="truncate text-sm font-bold text-slate-900">
-                                                        {itemPartner?.name || 'Mitra'}
-                                                    </h3>
-                                                    <span className="text-[11px] text-slate-400">
-                                                        {item.status.toUpperCase()}
-                                                    </span>
+                                                    <h3 className="truncate text-sm font-bold text-slate-900">{itemPartner?.name || 'Mitra'}</h3>
+                                                    <span className="text-[11px] text-slate-400">{item.status.toUpperCase()}</span>
                                                 </div>
-                                                <p className="truncate text-xs font-semibold text-slate-700">
-                                                    {item.product?.title || 'Produk'}
-                                                </p>
+                                                <p className="truncate text-xs font-semibold text-slate-700">{item.product?.title || 'Produk'}</p>
                                                 <p className="truncate text-xs text-slate-400">
-                                                    {item.agreed_price
-                                                        ? `Agreed: ${formatCurrency(item.agreed_price)}`
-                                                        : 'Sedang bernegosiasi...'}
+                                                    {item.agreed_price ? `Agreed: ${formatCurrency(item.agreed_price)}` : 'Sedang bernegosiasi...'}
                                                 </p>
                                             </div>
                                         </Link>
                                     );
                                 })
                             ) : (
-                                <div className="py-6 text-center text-xs text-slate-400">
-                                    Belum ada sesi negosiasi lain.
-                                </div>
+                                <div className="py-6 text-center text-xs text-slate-400">Belum ada sesi negosiasi lain.</div>
                             )}
                         </div>
                     </div>
-
-
                 </aside>
             </main>
 
             {/* Offer Modal */}
             {isOfferModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4">
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-xs">
                     <div className="w-full max-w-md rounded-3xl border border-slate-100 bg-white p-6 shadow-2xl">
                         <div className="mb-4 flex items-center justify-between">
                             <h3 className="text-lg font-bold text-slate-900">
@@ -776,9 +727,7 @@ export default function NegotiationShow({
 
                         <form onSubmit={handleSubmitOffer} className="space-y-4">
                             <div>
-                                <label className="mb-1 block text-xs font-semibold text-slate-700">
-                                    Harga Penawaran (Rp / unit)
-                                </label>
+                                <label className="mb-1 block text-xs font-semibold text-slate-700">Harga Penawaran (Rp / unit)</label>
                                 <input
                                     type="number"
                                     min="0"
@@ -792,9 +741,7 @@ export default function NegotiationShow({
                             </div>
 
                             <div>
-                                <label className="mb-1 block text-xs font-semibold text-slate-700">
-                                    Kuantitas ({product.unit || 'unit'})
-                                </label>
+                                <label className="mb-1 block text-xs font-semibold text-slate-700">Kuantitas ({product.unit || 'unit'})</label>
                                 <input
                                     type="number"
                                     min="1"
@@ -810,10 +757,7 @@ export default function NegotiationShow({
                             <div className="rounded-xl bg-emerald-50/70 p-3 text-xs text-emerald-900">
                                 <span className="block font-semibold">Total Nilai Penawaran:</span>
                                 <span className="text-base font-extrabold text-emerald-700">
-                                    {formatCurrency(
-                                        (Number(offerForm.data.offer_price) || 0) *
-                                            (Number(offerForm.data.offer_quantity) || 0)
-                                    )}
+                                    {formatCurrency((Number(offerForm.data.offer_price) || 0) * (Number(offerForm.data.offer_quantity) || 0))}
                                 </span>
                             </div>
 
