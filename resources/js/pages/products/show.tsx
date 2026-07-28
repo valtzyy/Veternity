@@ -15,6 +15,7 @@ interface Product {
     title: string;
     description: string;
     reference_price: string;
+    minimum_order: number;
     stock: number;
     unit: string;
     location: string;
