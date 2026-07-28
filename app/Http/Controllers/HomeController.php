@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Category;
 use App\Models\Product;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -30,12 +31,14 @@ class HomeController extends Controller
             ->take(8)
             ->get();
 
-        $stats = [
-            'total_products' => Product::available()->count(),
-            'total_categories' => Category::count(),
-            'total_stock' => (int) Product::available()->sum('stock'),
-            'total_sellers' => Product::available()->distinct('seller_id')->count('seller_id'),
-        ];
+        $stats = Cache::remember('home_stats', 300, function () {
+            return [
+                'total_products' => Product::available()->count(),
+                'total_categories' => Category::count(),
+                'total_stock' => (int) Product::available()->sum('stock'),
+                'total_sellers' => Product::available()->distinct('seller_id')->count('seller_id'),
+            ];
+        });
 
         return Inertia::render('home', [
             'categories' => $categories,
@@ -49,7 +52,11 @@ class HomeController extends Controller
      */
     public function marketplace(Request $request): Response
     {
-        $query = Product::with(['seller', 'category', 'images'])->available();
+        $query = Product::with([
+            'seller:id,name',
+            'category:id,name',
+            'images',
+        ])->available();
 
         // Search filter
         if ($request->filled('search')) {
@@ -68,13 +75,8 @@ class HomeController extends Controller
             });
         }
 
-        // Eco Score filter
-        // We'll simulate Eco Score. If the table doesn't have an eco_score column,
-        // we can filter using dummy logic or just keep the filter query and mock the field.
-        // Let's mock a rating filter or keep it in request and handle it.
-
         $products = $query->latest()->paginate(12)->withQueryString();
-        $categories = Category::all(['id', 'name']);
+        $categories = Cache::remember('categories_list', 600, fn () => Category::all(['id', 'name']));
 
         return Inertia::render('marketplace', [
             'products' => $products,
@@ -88,10 +90,10 @@ class HomeController extends Controller
      */
     public function show(Product $product): Response
     {
-        $product->load(['seller', 'category', 'images']);
+        $product->load(['seller:id,name,address', 'category:id,name', 'images']);
 
         // Fetch related products (same category, excluding current product)
-        $relatedProducts = Product::with(['seller', 'category', 'images'])
+        $relatedProducts = Product::with(['seller:id,name', 'category:id,name', 'images'])
             ->where('category_id', $product->category_id)
             ->where('id', '!=', $product->id)
             ->available()
