@@ -1,17 +1,31 @@
 <?php
 
+use App\Http\Controllers\AdminController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ChatMessageController;
 use App\Http\Controllers\HomeController;
+use App\Http\Controllers\ProductController;
 use App\Http\Controllers\NegotiationController;
 use Illuminate\Support\Facades\Route;
-use Inertia\Inertia;
 
 Route::get('/', [HomeController::class, 'index'])->name('home');
+Route::get('/marketplace', [HomeController::class, 'marketplace'])->name('marketplace');
+Route::get('/products/{product}', [HomeController::class, 'show'])->name('products.show');
 
 Route::middleware(['auth'])->group(function () {
-    Route::get('dashboard', function () {
-        return Inertia::render('dashboard');
-    })->name('dashboard');
+    Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+    // Admin routes
+    Route::middleware(['admin'])->prefix('admin')->name('admin.')->group(function () {
+        Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
+        Route::get('/users', [AdminController::class, 'users'])->name('users');
+        Route::get('/products', [AdminController::class, 'products'])->name('products');
+    });
+
+    // Seller routes
+    Route::middleware(['seller'])->prefix('seller')->name('seller.')->group(function () {
+        Route::resource('products', ProductController::class);
+    });
 
     // Negotiation routes
     Route::get('/negotiations', [NegotiationController::class, 'index'])->name('negotiations.index');

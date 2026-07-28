@@ -48,6 +48,7 @@ class Product extends Model
             'stock' => 'integer',
             'view_count' => 'integer',
             'expired_at' => 'datetime',
+            'knowledge' => 'array',
             'created_at' => 'datetime',
             'updated_at' => 'datetime',
             'deleted_at' => 'datetime',
