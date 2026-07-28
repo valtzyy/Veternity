@@ -1,7 +1,7 @@
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
-import { Head, Link } from '@inertiajs/react';
-import { Leaf, MapPin, BadgeCheck, ShieldCheck, Calendar, MessageSquare, CreditCard, ChevronRight, Phone, MessageCircle, Layers } from 'lucide-react';
+import { Head, Link, router, usePage } from '@inertiajs/react';
+import { Leaf, MapPin, BadgeCheck, ShieldCheck, Calendar, MessageSquare, CreditCard, ChevronRight, Phone, MessageCircle, Layers, ArrowLeft } from 'lucide-react';
 import { useState } from 'react';
 
 interface ProductImage {
@@ -36,6 +36,9 @@ interface Props {
 }
 
 export default function Show({ product, relatedProducts }: Props) {
+    const { auth } = usePage().props as any;
+    const currentUser = auth?.user;
+
     const images = product.images.length > 0 
         ? product.images 
         : [{ id: 1, image_url: '/images/placeholder.jpg', is_primary: true }];
@@ -56,6 +59,27 @@ export default function Show({ product, relatedProducts }: Props) {
         { title: 'Marketplace', href: '/marketplace' },
         { title: product.title, href: `/products/${product.id}` },
     ];
+
+    const handleNegotiate = () => {
+        if (!currentUser) {
+            router.get(route('login'));
+            return;
+        }
+
+        if (currentUser.role !== 'buyer') {
+            alert('Hanya akun Pembeli (buyer) yang dapat memulai negosiasi.');
+            return;
+        }
+
+        if (currentUser.id === product.seller.id) {
+            alert('Anda tidak bisa melakukan negosiasi pada produk Anda sendiri.');
+            return;
+        }
+
+        router.post(route('negotiations.store'), {
+            product_id: product.id,
+        });
+    };
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -146,10 +170,13 @@ export default function Show({ product, relatedProducts }: Props) {
 
                             {/* Buttons */}
                             <div className="flex flex-col sm:flex-row gap-4 mb-6">
-                                <button className="flex-1 bg-[#2e5a36] hover:bg-[#234529] text-white py-4 rounded-2xl font-bold transition-all shadow-md flex items-center justify-center gap-2">
+                                <button className="flex-1 bg-[#2e5a36] hover:bg-[#234529] text-white py-4 rounded-2xl font-bold transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer">
                                     <CreditCard className="h-5 w-5" /> Bayar Sekarang
                                 </button>
-                                <button className="flex-1 border border-neutral-200 bg-white hover:bg-neutral-50 text-[#2e5a36] py-4 rounded-2xl font-bold transition-all shadow-xs flex items-center justify-center gap-2">
+                                <button 
+                                    onClick={handleNegotiate}
+                                    className="flex-1 border border-neutral-200 bg-white hover:bg-neutral-50 text-[#2e5a36] py-4 rounded-2xl font-bold transition-all shadow-xs flex items-center justify-center gap-2 cursor-pointer"
+                                >
                                     <MessageSquare className="h-5 w-5" /> Negosiasi
                                 </button>
                             </div>
@@ -325,6 +352,3 @@ export default function Show({ product, relatedProducts }: Props) {
         </AppLayout>
     );
 }
-
-// Inline component replacement for clean import
-import { ArrowLeft } from 'lucide-react';

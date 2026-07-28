@@ -480,9 +480,12 @@ export default function Home({ categories, latestProducts, stats }: Props) {
                                                 {product.stock.toLocaleString('id-ID')} {product.unit} tersedia
                                             </p>
                                         </div>
-                                        <button className="w-full rounded-xl border border-gray-200 py-2.5 text-sm font-semibold text-gray-700 transition hover:border-[#2e5a36] hover:bg-[#f0f7f1] hover:text-[#2e5a36]">
+                                        <Link 
+                                            href={route('products.show', product.id)}
+                                            className="w-full text-center block rounded-xl border border-gray-200 py-2.5 text-sm font-semibold text-gray-700 transition hover:border-[#2e5a36] hover:bg-[#f0f7f1] hover:text-[#2e5a36]"
+                                        >
                                             Lihat Detail
-                                        </button>
+                                        </Link>
                                     </div>
                                 </div>
                             </div>

@@ -64,7 +64,7 @@ export function AppSidebar() {
             },
             {
                 title: 'Negosiasi',
-                url: '/seller/negotiations',
+                url: '/negotiations',
                 icon: Users,
             },
             {
@@ -92,7 +92,7 @@ export function AppSidebar() {
             },
             {
                 title: 'Negosiasi',
-                url: '/buyer/negotiations',
+                url: '/negotiations',
                 icon: MessageSquare,
             },
             {
