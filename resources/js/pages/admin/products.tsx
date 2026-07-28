@@ -1,6 +1,6 @@
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
-import { Head } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
 import { Check, X, ShieldAlert } from 'lucide-react';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -35,6 +35,18 @@ interface ProductsProps {
 }
 
 export default function Products({ products }: ProductsProps) {
+    const handleApprove = (id: number) => {
+        if (confirm('Apakah Anda yakin ingin menyetujui produk ini agar tampil di marketplace?')) {
+            router.patch(route('admin.products.approve', id));
+        }
+    };
+
+    const handleReject = (id: number) => {
+        if (confirm('Apakah Anda yakin ingin menolak produk ini?')) {
+            router.patch(route('admin.products.reject', id));
+        }
+    };
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Moderasi Produk - ReGuna" />
@@ -98,18 +110,30 @@ export default function Products({ products }: ProductsProps) {
                                                         ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300'
                                                         : 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300'
                                                 }`}>
-                                                    {product.status}
+                                                    {product.status === 'pending_review' ? 'Pending Review' : product.status === 'available' ? 'Tersedia' : 'Ditolak'}
                                                 </span>
                                             </td>
                                             <td className="px-6 py-4 text-right">
-                                                <div className="flex justify-end gap-2">
-                                                    <button className="rounded-lg p-1.5 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 dark:bg-emerald-950 dark:text-emerald-400 transition-colors">
-                                                        <Check className="h-4 w-4" />
-                                                    </button>
-                                                    <button className="rounded-lg p-1.5 bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-950 dark:text-red-400 transition-colors">
-                                                        <X className="h-4 w-4" />
-                                                    </button>
-                                                </div>
+                                                {product.status === 'pending_review' ? (
+                                                    <div className="flex justify-end gap-2">
+                                                        <button 
+                                                            onClick={() => handleApprove(product.id)}
+                                                            title="Setujui Produk"
+                                                            className="rounded-lg p-1.5 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 dark:bg-emerald-950 dark:text-emerald-400 transition-colors cursor-pointer"
+                                                        >
+                                                            <Check className="h-4 w-4" />
+                                                        </button>
+                                                        <button 
+                                                            onClick={() => handleReject(product.id)}
+                                                            title="Tolak Produk"
+                                                            className="rounded-lg p-1.5 bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-950 dark:text-red-400 transition-colors cursor-pointer"
+                                                        >
+                                                            <X className="h-4 w-4" />
+                                                        </button>
+                                                    </div>
+                                                ) : (
+                                                    <span className="text-xs text-neutral-400 dark:text-neutral-500">Selesai dimoderasi</span>
+                                                )}
                                             </td>
                                         </tr>
                                     ))

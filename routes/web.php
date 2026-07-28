@@ -1,11 +1,11 @@
 <?php
 
 use App\Http\Controllers\AdminController;
-use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ChatMessageController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\HomeController;
-use App\Http\Controllers\ProductController;
 use App\Http\Controllers\NegotiationController;
+use App\Http\Controllers\ProductController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [HomeController::class, 'index'])->name('home');
@@ -20,6 +20,8 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
         Route::get('/users', [AdminController::class, 'users'])->name('users');
         Route::get('/products', [AdminController::class, 'products'])->name('products');
+        Route::patch('/products/{product}/approve', [AdminController::class, 'approve'])->name('products.approve');
+        Route::patch('/products/{product}/reject', [AdminController::class, 'reject'])->name('products.reject');
     });
 
     // Seller routes

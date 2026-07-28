@@ -53,4 +53,24 @@ class AdminController extends Controller
             'products' => $products,
         ]);
     }
+
+    /**
+     * Approve the specified product.
+     */
+    public function approve(Product $product)
+    {
+        $product->update(['status' => 'available']);
+
+        return back()->with('message', "Produk '{$product->title}' berhasil disetujui.");
+    }
+
+    /**
+     * Reject the specified product.
+     */
+    public function reject(Product $product)
+    {
+        $product->update(['status' => 'inactive']);
+
+        return back()->with('message', "Produk '{$product->title}' telah ditolak.");
+    }
 }
