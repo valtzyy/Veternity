@@ -51,13 +51,34 @@ interface TransactionItem {
     nego?: boolean;
 }
 
+interface FavoriteProduct {
+    id: number;
+    title: string;
+    reference_price: string;
+    unit: string;
+    seller: { name: string };
+    images: { image_url: string }[];
+}
+
+interface BuyerStats {
+    total_spend: number;
+    active_orders: number;
+    action_required_orders: number;
+    active_negotiations: number;
+    counter_offers: number;
+    co2_reduced: number;
+    monthly_expenses: { month: string; amount: number }[];
+    favorites: FavoriteProduct[];
+}
+
 interface DashboardProps {
     stats?: Stats;
     recentOrders?: RecentOrder[];
     transactions?: TransactionItem[];
+    buyerStats?: BuyerStats;
 }
 
-export default function Dashboard({ stats, recentOrders, transactions = [] }: DashboardProps) {
+export default function Dashboard({ stats, recentOrders, transactions = [], buyerStats }: DashboardProps) {
     const { auth } = usePage<any>().props;
     const isSeller = auth?.user?.role === 'seller';
     const [orderTab, setOrderTab] = useState('Semua');
@@ -65,6 +86,24 @@ export default function Dashboard({ stats, recentOrders, transactions = [] }: Da
     const previewTransactions = transactions
         .filter((t) => orderTab === 'Semua' || t.status === orderTab)
         .slice(0, 4);
+
+    const bStats = buyerStats || {
+        total_spend: 0,
+        active_orders: 0,
+        action_required_orders: 0,
+        active_negotiations: 0,
+        counter_offers: 0,
+        co2_reduced: 0,
+        monthly_expenses: [
+            { month: 'Feb', amount: 0 },
+            { month: 'Mar', amount: 0 },
+            { month: 'Apr', amount: 0 },
+            { month: 'Mei', amount: 0 },
+            { month: 'Jun', amount: 0 },
+            { month: 'Jul', amount: 0 },
+        ],
+        favorites: []
+    };
 
     if (!isSeller) {
         return (
@@ -78,7 +117,7 @@ export default function Dashboard({ stats, recentOrders, transactions = [] }: Da
                                 Selamat datang, {auth?.user?.name || 'Sari'}! 👋
                             </h1>
                             <p className="text-sm text-neutral-500 mt-1">
-                                Kamis, 17 Juli 2025 — Berikut ringkasan aktivitas pembelian Anda.
+                                {new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })} — Berikut ringkasan aktivitas pembelian Anda.
                             </p>
                         </div>
                         <span className="bg-[#e6f4e9] text-[#2e5a36] px-4 py-2 rounded-full text-xs font-bold shadow-xs flex items-center gap-1.5 border border-[#2e5a36]/10">
@@ -97,22 +136,29 @@ export default function Dashboard({ stats, recentOrders, transactions = [] }: Da
                                 </div>
                             </div>
                             <div className="mt-4">
-                                <h3 className="text-2xl font-bold text-neutral-900">Rp 5,9 Jt</h3>
-                                <p className="mt-1 text-xs text-neutral-400">Jul 2025</p>
+                                <h3 className="text-2xl font-bold text-neutral-900">
+                                    {bStats.total_spend >= 1000000 
+                                        ? `Rp ${(bStats.total_spend / 1000000).toFixed(1)} Jt` 
+                                        : `Rp ${bStats.total_spend.toLocaleString('id-ID')}`
+                                    }
+                                </h3>
+                                <p className="mt-1 text-xs text-neutral-400">
+                                    {new Date().toLocaleDateString('id-ID', { month: 'short', year: 'numeric' })}
+                                </p>
                             </div>
                         </div>
 
                         {/* active orders */}
                         <div className="rounded-2xl border border-neutral-200/60 bg-white p-5 shadow-xs">
                             <div className="flex items-center justify-between">
-                                <span className="text-xs font-semibold text-neutral-500 uppercase tracking-wider">Pesanan Aktif</span>
+                                <span className="text-xs font-semibold text-neutral-500 uppercase tracking-wider">Pesanan Pembayaran</span>
                                 <div className="rounded-xl bg-blue-50 text-blue-700 p-2.5">
                                     <ShoppingBag className="h-5 w-5" />
                                 </div>
                             </div>
                             <div className="mt-4">
-                                <h3 className="text-2xl font-bold text-neutral-900">4</h3>
-                                <p className="mt-1 text-xs text-blue-600 font-bold">2 perlu tindakan</p>
+                                <h3 className="text-2xl font-bold text-neutral-900">{bStats.active_orders}</h3>
+                                <p className="mt-1 text-xs text-blue-600 font-bold">{bStats.action_required_orders} perlu tindakan</p>
                             </div>
                         </div>
 
@@ -125,8 +171,8 @@ export default function Dashboard({ stats, recentOrders, transactions = [] }: Da
                                 </div>
                             </div>
                             <div className="mt-4">
-                                <h3 className="text-2xl font-bold text-neutral-900">2</h3>
-                                <p className="mt-1 text-xs text-amber-600 font-bold">1 counter offer</p>
+                                <h3 className="text-2xl font-bold text-neutral-900">{bStats.active_negotiations}</h3>
+                                <p className="mt-1 text-xs text-amber-600 font-bold">{bStats.counter_offers} counter offer</p>
                             </div>
                         </div>
 
@@ -139,7 +185,7 @@ export default function Dashboard({ stats, recentOrders, transactions = [] }: Da
                                 </div>
                             </div>
                             <div className="mt-4">
-                                <h3 className="text-2xl font-bold text-neutral-900">1.4 ton</h3>
+                                <h3 className="text-2xl font-bold text-neutral-900">{bStats.co2_reduced} ton</h3>
                                 <p className="mt-1 text-xs text-emerald-700 font-bold">bulan ini</p>
                             </div>
                         </div>
@@ -151,28 +197,33 @@ export default function Dashboard({ stats, recentOrders, transactions = [] }: Da
                             <div className="flex justify-between items-center mb-6">
                                 <div>
                                     <h2 className="text-base font-bold text-neutral-900">Riwayat Pengeluaran</h2>
-                                    <p className="text-xs text-neutral-500">Februari — Juli 2025</p>
+                                    <p className="text-xs text-neutral-500">6 Bulan Terakhir</p>
                                 </div>
                                 <span className="bg-[#e6f4e9] text-[#2e5a36] text-xs font-bold px-3 py-1 rounded-full">
-                                    Total Rp 8,95 Jt
+                                    Total {bStats.total_spend >= 1000000 
+                                        ? `Rp ${(bStats.total_spend / 1000000).toFixed(2)} Jt` 
+                                        : `Rp ${bStats.total_spend.toLocaleString('id-ID')}`
+                                    }
                                 </span>
                             </div>
                             <div className="flex items-end justify-between h-44 pt-6 border-b border-neutral-100">
-                                {[
-                                    { month: 'Feb', val: 'h-[30%]' },
-                                    { month: 'Mar', val: 'h-[40%]' },
-                                    { month: 'Apr', val: 'h-[25%]' },
-                                    { month: 'Mei', val: 'h-[55%]' },
-                                    { month: 'Jun', val: 'h-[70%]' },
-                                    { month: 'Jul', val: 'h-[90%]' },
-                                ].map((bar) => (
-                                    <div key={bar.month} className="flex flex-col items-center gap-2 w-full group">
-                                        <div className="w-8/12 bg-neutral-100 group-hover:bg-[#2e5a36]/90 rounded-t-lg transition-all duration-300 relative flex justify-center h-28">
-                                            <div className={`w-full bg-[#2e5a36] rounded-t-lg absolute bottom-0 ${bar.val}`} />
-                                        </div>
-                                        <span className="text-xs text-neutral-500 pb-2">{bar.month}</span>
-                                    </div>
-                                ))}
+                                {(() => {
+                                    const maxExpense = Math.max(...bStats.monthly_expenses.map(e => e.amount), 1);
+                                    return bStats.monthly_expenses.map((bar) => {
+                                        const pct = Math.round((bar.amount / maxExpense) * 100);
+                                        return (
+                                            <div key={bar.month} className="flex flex-col items-center gap-2 w-full group">
+                                                <div className="w-8/12 bg-neutral-100 group-hover:bg-[#2e5a36]/90 rounded-t-lg transition-all duration-300 relative flex justify-center h-28">
+                                                    <div 
+                                                        className="w-full bg-[#2e5a36] rounded-t-lg absolute bottom-0 transition-all duration-500" 
+                                                        style={{ height: `${pct}%` }}
+                                                    />
+                                                </div>
+                                                <span className="text-xs text-neutral-500 pb-2">{bar.month}</span>
+                                            </div>
+                                        );
+                                    });
+                                })()}
                             </div>
                         </div>
 
@@ -180,29 +231,46 @@ export default function Dashboard({ stats, recentOrders, transactions = [] }: Da
                         <div className="rounded-2xl border border-neutral-200/60 bg-white p-6 shadow-xs flex flex-col">
                             <div className="flex justify-between items-center mb-6">
                                 <h2 className="text-base font-bold text-neutral-900">Produk Favorit</h2>
-                                <button className="text-xs font-semibold text-[#2e5a36] hover:text-[#234529]">Lihat semua</button>
+                                <Link href={route('buyer.favorites')} className="text-xs font-semibold text-[#2e5a36] hover:text-[#234529]">Lihat semua</Link>
                             </div>
                             <div className="space-y-4 flex-1">
-                                {[
-                                    { name: 'Ampas Tahu Premium', seller: 'CV. Sari Murni', price: 'Rp 850/kg' },
-                                    { name: 'Ampas Kopi Arabika', seller: 'Kopiku Nusantara', price: 'Rp 1.200/kg' },
-                                    { name: 'Dedak Padi Halus', seller: 'PT. Agri Mandiri', price: 'Rp 300/kg' },
-                                ].map((fav, i) => (
-                                    <div key={i} className="flex items-center justify-between p-2 rounded-xl border border-neutral-50 hover:bg-neutral-50/50 transition-colors">
-                                        <div className="flex items-center gap-2">
-                                            <div className="h-10 w-10 rounded-lg bg-[#f0f7f1] text-[#2e5a36] flex items-center justify-center font-bold text-xs">
-                                                {fav.name.charAt(0)}
-                                            </div>
-                                            <div>
-                                                <h4 className="text-sm font-bold text-neutral-900">{fav.name}</h4>
-                                                <p className="text-xs text-neutral-400">{fav.seller}</p>
-                                            </div>
-                                        </div>
-                                        <div className="text-right">
-                                            <span className="text-sm font-extrabold text-[#2e5a36]">{fav.price}</span>
-                                        </div>
+                                {bStats.favorites.length === 0 ? (
+                                    <div className="py-8 text-center text-xs text-neutral-400">
+                                        Belum ada produk favorit.
                                     </div>
-                                ))}
+                                ) : (
+                                    bStats.favorites.map((fav) => {
+                                        const primaryImg = fav.images?.[0]?.image_url;
+                                        return (
+                                            <Link 
+                                                href={route('products.show', fav.id)}
+                                                key={fav.id} 
+                                                className="flex items-center justify-between p-2 rounded-xl border border-neutral-50 hover:bg-neutral-50/50 transition-colors cursor-pointer"
+                                            >
+                                                <div className="flex items-center gap-2">
+                                                    {primaryImg ? (
+                                                        <div className="h-10 w-10 rounded-lg overflow-hidden bg-neutral-100 flex-shrink-0">
+                                                            <img src={primaryImg} alt={fav.title} className="w-full h-full object-cover" />
+                                                        </div>
+                                                    ) : (
+                                                        <div className="h-10 w-10 rounded-lg bg-[#f0f7f1] text-[#2e5a36] flex items-center justify-center font-bold text-xs flex-shrink-0">
+                                                            {fav.title.charAt(0)}
+                                                        </div>
+                                                    )}
+                                                    <div>
+                                                        <h4 className="text-sm font-bold text-neutral-900 capitalize truncate max-w-[120px]">{fav.title}</h4>
+                                                        <p className="text-xs text-neutral-400 truncate max-w-[120px]">{fav.seller.name}</p>
+                                                    </div>
+                                                </div>
+                                                <div className="text-right">
+                                                    <span className="text-sm font-extrabold text-[#2e5a36]">
+                                                        Rp {Number(fav.reference_price).toLocaleString('id-ID')}/{fav.unit}
+                                                    </span>
+                                                </div>
+                                            </Link>
+                                        );
+                                    })
+                                )}
                             </div>
                             <Link href={route('marketplace')} className="mt-4 w-full bg-[#f0f7f1] hover:bg-[#e6f4e9] text-[#2e5a36] text-center py-3 rounded-xl font-bold text-xs transition-colors flex items-center justify-center gap-1.5">
                                 + Temukan Produk Baru

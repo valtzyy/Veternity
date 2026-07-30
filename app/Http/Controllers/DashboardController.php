@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Negotiation;
+use App\Models\Order;
 use App\Models\Product;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -83,6 +84,74 @@ class DashboardController extends Controller
 
         // For buyer: fetch active transactions from database
         $userId = $user->id;
+
+        // 1. Total Spend (Completed or processing orders)
+        $totalSpend = Order::where('buyer_id', $userId)
+            ->whereIn('status', ['paid', 'processing', 'shipping', 'completed'])
+            ->selectRaw('SUM(final_price * final_quantity) as total')
+            ->value('total') ?? 0;
+
+        // 2. Active Orders
+        $activeOrdersCount = Order::where('buyer_id', $userId)
+            ->whereIn('status', ['waiting_payment', 'paid', 'processing', 'shipping'])
+            ->count();
+        $actionRequiredOrdersCount = Order::where('buyer_id', $userId)
+            ->where('status', 'waiting_payment')
+            ->count();
+
+        // 3. Active Negotiations
+        $activeNegosCount = Negotiation::where('buyer_id', $userId)
+            ->whereIn('status', ['pending', 'negotiating'])
+            ->count();
+        $counterOfferCount = Negotiation::where('buyer_id', $userId)
+            ->where('status', 'negotiating')
+            ->count();
+
+        // 4. CO2 Reduced (1 kg food waste saved = ~2.5 kg CO2 = 0.0025 tons CO2)
+        $totalWeightKg = Order::where('buyer_id', $userId)
+            ->whereIn('status', ['paid', 'processing', 'shipping', 'completed'])
+            ->sum('final_quantity');
+        $co2ReducedTons = round($totalWeightKg * 0.0025, 2);
+
+        // 5. Expense History (Last 6 months)
+        $monthlyExpenses = [];
+        for ($i = 5; $i >= 0; $i--) {
+            $date = now()->subMonths($i);
+            $monthName = $date->translatedFormat('M');
+            $monthNum = $date->month;
+            $yearNum = $date->year;
+
+            $sum = Order::where('buyer_id', $userId)
+                ->whereIn('status', ['paid', 'processing', 'shipping', 'completed'])
+                ->whereMonth('created_at', $monthNum)
+                ->whereYear('created_at', $yearNum)
+                ->selectRaw('SUM(final_price * final_quantity) as total')
+                ->value('total') ?? 0;
+
+            $monthlyExpenses[] = [
+                'month' => $monthName,
+                'amount' => (int) $sum,
+            ];
+        }
+
+        // 6. Favorite Products (Top 3)
+        $favoriteProducts = $user->favorites()
+            ->with(['seller', 'images'])
+            ->latest('favorites.created_at')
+            ->take(3)
+            ->get();
+
+        $buyerStats = [
+            'total_spend' => (int) $totalSpend,
+            'active_orders' => $activeOrdersCount,
+            'action_required_orders' => $actionRequiredOrdersCount,
+            'active_negotiations' => $activeNegosCount,
+            'counter_offers' => $counterOfferCount,
+            'co2_reduced' => $co2ReducedTons,
+            'monthly_expenses' => $monthlyExpenses,
+            'favorites' => $favoriteProducts,
+        ];
+
         $negotiations = Negotiation::with(['product.seller', 'product.images', 'buyer', 'seller', 'order.invoice'])
             ->where('buyer_id', $userId)
             ->latest('updated_at')
@@ -168,6 +237,7 @@ class DashboardController extends Controller
 
         return Inertia::render('dashboard', [
             'transactions' => $transactions,
+            'buyerStats' => $buyerStats,
         ]);
     }
 }
