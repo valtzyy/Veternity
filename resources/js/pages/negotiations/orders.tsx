@@ -310,7 +310,7 @@ export default function OrdersIndex({ negotiations }: Props) {
                                                     {[0, 1, 2, 3, 4].map((stepIdx) => {
                                                         const isDone = step >= stepIdx;
                                                         return (
-                                                            <div key={stepIdx} className="flex items-center" key={stepIdx}>
+                                                            <div key={stepIdx} className="flex items-center">
                                                                 <div className={`h-4.5 w-4.5 rounded-full flex items-center justify-center border-2 transition-all ${
                                                                     isDone 
                                                                     ? 'bg-[#2e5a36] border-[#2e5a36] text-white' 

@@ -44,7 +44,7 @@ class OrderCompleteTest extends TestCase
         $response = $this->actingAs($buyer)
             ->patch(route('orders.complete', $order->id));
 
-        $response->assertRedirect(route('negotiations.index'));
+        $response->assertRedirect(route('buyer.orders'));
         $this->assertDatabaseHas('orders', [
             'id' => $order->id,
             'status' => 'completed',

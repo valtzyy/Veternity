@@ -237,7 +237,7 @@ class PaymentController extends Controller
             'created_at' => now(),
         ]);
 
-        return redirect()->route('negotiations.index')
+        return redirect()->route('buyer.orders')
             ->with('message', 'Pesanan berhasil diselesaikan!');
     }
 }
