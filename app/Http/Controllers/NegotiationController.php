@@ -129,4 +129,30 @@ class NegotiationController extends Controller
             'activeNegotiations' => $activeNegotiations,
         ]);
     }
+
+    /**
+     * Display the buyer's order history page.
+     */
+    public function buyerOrders(Request $request): Response
+    {
+        $userId = Auth::id();
+
+        $negotiations = Negotiation::with([
+            'product.seller',
+            'product.images',
+            'buyer',
+            'seller',
+            'order.invoice',
+            'messages' => function ($q) {
+                $q->latest('created_at')->limit(1);
+            },
+        ])
+            ->where('buyer_id', $userId)
+            ->latest('updated_at')
+            ->get();
+
+        return Inertia::render('negotiations/orders', [
+            'negotiations' => $negotiations,
+        ]);
+    }
 }

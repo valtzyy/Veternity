@@ -33,6 +33,7 @@ Route::middleware(['auth'])->group(function () {
     // Negotiation routes
     Route::get('/negotiations', [NegotiationController::class, 'index'])->name('negotiations.index');
     Route::post('/negotiations', [NegotiationController::class, 'store'])->name('negotiations.store');
+    Route::get('/buyer/orders', [NegotiationController::class, 'buyerOrders'])->name('buyer.orders');
     Route::get('/negotiations/{negotiation}', [NegotiationController::class, 'show'])->name('negotiations.show');
 
     // Checkout & Payment simulation
