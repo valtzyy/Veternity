@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\ChatMessage;
 use App\Models\Negotiation;
+use Cloudinary\Cloudinary as CloudinarySdk;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -48,13 +49,17 @@ class ChatMessageController extends Controller
                 'created_at' => now(),
             ]);
         } elseif ($request->message_type === 'image' && $request->hasFile('image')) {
-            $path = $request->file('image')->store('chat_images', 'public');
+            $cloudinary = new CloudinarySdk(config('cloudinary.cloud_url'));
+            $response = $cloudinary->uploadApi()->upload(
+                $request->file('image')->getRealPath(),
+                ['folder' => 'chat_images']
+            );
 
             ChatMessage::create([
                 'negotiation_id' => $negotiation->id,
                 'sender_id' => $userId,
                 'message_type' => 'image',
-                'image_url' => '/storage/'.$path,
+                'image_url' => $response['secure_url'],
                 'message' => $request->message,
                 'created_at' => now(),
             ]);

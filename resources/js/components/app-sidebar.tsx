@@ -87,13 +87,8 @@ export function AppSidebar() {
             },
             {
                 title: 'Pesanan Saya',
-                url: '/buyer/orders',
-                icon: ClipboardCheck,
-            },
-            {
-                title: 'Negosiasi',
                 url: '/negotiations',
-                icon: MessageSquare,
+                icon: ClipboardCheck,
             },
             {
                 title: 'Favorit',
