@@ -8,6 +8,7 @@ use App\Http\Controllers\HomeController;
 use App\Http\Controllers\NegotiationController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\ProductController;
+use App\Http\Controllers\RatingController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [HomeController::class, 'index'])->name('home');
@@ -48,6 +49,7 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/orders/{order}/payment', [PaymentController::class, 'processPayment'])->name('orders.payment.store');
     Route::get('/invoices/{invoice}', [PaymentController::class, 'showInvoice'])->name('invoices.show');
     Route::patch('/orders/{order}/complete', [PaymentController::class, 'completeOrder'])->name('orders.complete');
+    Route::post('/orders/{order}/ratings', [RatingController::class, 'store'])->name('orders.ratings.store');
 
     // Chat messages & offer actions
     Route::post('/negotiations/{negotiation}/messages', [ChatMessageController::class, 'store'])->name('negotiations.messages.store');
