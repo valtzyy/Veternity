@@ -1,8 +1,9 @@
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import { ShoppingBag, Search, Filter, MessageSquare, CreditCard, ChevronRight, CheckCircle2, ArrowRight } from 'lucide-react';
 import { useState } from 'react';
+import { usePage } from '@inertiajs/react';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -29,6 +30,7 @@ export interface Transaction {
     step: number;
     button: string | null;
     action_url: string;
+    complete_url?: string | null;
     nego?: boolean;
 }
 
@@ -37,8 +39,17 @@ interface IndexProps {
 }
 
 export default function NegotiationIndex({ transactions = [] }: IndexProps) {
+    const { auth } = usePage<any>().props;
+    const isSeller = auth?.user?.role === 'seller';
+
     const [orderTab, setOrderTab] = useState('Semua');
     const [searchQuery, setSearchQuery] = useState('');
+
+    const handleCompleteOrder = (completeUrl: string) => {
+        if (window.confirm('Apakah Anda yakin pesanan ini telah selesai diterima?')) {
+            router.patch(completeUrl);
+        }
+    };
 
     const filteredTransactions = transactions.filter((item) => {
         const matchesTab = orderTab === 'Semua' || item.status === orderTab;
@@ -175,26 +186,50 @@ export default function NegotiationIndex({ transactions = [] }: IndexProps) {
                                             </span>
                                         </div>
 
-                                        {order.button ? (
-                                            <Link
-                                                href={order.action_url}
-                                                className={`px-4 py-2.5 rounded-xl text-xs font-bold shadow-xs transition-all inline-flex items-center gap-1.5 cursor-pointer ${
-                                                    order.button.includes('Bayar')
-                                                        ? 'bg-[#2e5a36] text-white hover:bg-[#234529]'
-                                                        : 'border border-neutral-200 text-neutral-700 bg-white hover:bg-neutral-50'
-                                                }`}
-                                            >
-                                                {order.button}
-                                                <ArrowRight className="h-3.5 w-3.5" />
-                                            </Link>
-                                        ) : (
-                                            <Link
-                                                href={order.action_url}
-                                                className="border border-neutral-200 bg-white text-neutral-600 hover:bg-neutral-50 px-4 py-2.5 rounded-xl text-xs font-bold"
-                                            >
-                                                Detail
-                                            </Link>
-                                        )}
+                                        <div className="flex flex-col gap-2 items-end">
+                                            {isSeller ? (
+                                                <Link
+                                                    href={`/negotiations/${order.negotiation_id}`}
+                                                    className="border border-neutral-200 text-neutral-700 bg-white hover:bg-neutral-50 px-4 py-2.5 rounded-xl text-xs font-bold shadow-xs transition-all inline-flex items-center gap-1.5 cursor-pointer"
+                                                >
+                                                    Lihat Chat
+                                                    <ArrowRight className="h-3.5 w-3.5" />
+                                                </Link>
+                                            ) : (
+                                                <>
+                                                    {order.button ? (
+                                                        <Link
+                                                            href={order.action_url}
+                                                            className={`px-4 py-2.5 rounded-xl text-xs font-bold shadow-xs transition-all inline-flex items-center gap-1.5 cursor-pointer ${
+                                                                order.button.includes('Bayar')
+                                                                    ? 'bg-[#2e5a36] text-white hover:bg-[#234529]'
+                                                                    : 'border border-neutral-200 text-neutral-700 bg-white hover:bg-neutral-50'
+                                                            }`}
+                                                        >
+                                                            {order.button}
+                                                            <ArrowRight className="h-3.5 w-3.5" />
+                                                        </Link>
+                                                    ) : (
+                                                        <Link
+                                                            href={order.action_url}
+                                                            className="border border-neutral-200 bg-white text-neutral-600 hover:bg-neutral-50 px-4 py-2.5 rounded-xl text-xs font-bold"
+                                                        >
+                                                            Detail
+                                                        </Link>
+                                                    )}
+
+                                                    {order.status === 'Pickup' && order.complete_url && (
+                                                        <button
+                                                            onClick={() => handleCompleteOrder(order.complete_url!)}
+                                                            className="px-4 py-2 rounded-xl text-xs font-bold bg-[#2e5a36] text-white hover:bg-[#234529] transition-all cursor-pointer shadow-xs inline-flex items-center gap-1.5"
+                                                        >
+                                                            <CheckCircle2 className="h-3.5 w-3.5" />
+                                                            Selesai
+                                                        </button>
+                                                    )}
+                                                </>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                             ))}

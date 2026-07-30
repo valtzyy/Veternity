@@ -161,6 +161,7 @@ class DashboardController extends Controller
                 'step' => $step,
                 'button' => $button,
                 'action_url' => $actionUrl,
+                'complete_url' => ($order && $order->status === 'paid') ? route('orders.complete', $order->id) : null,
                 'nego' => true,
             ];
         });

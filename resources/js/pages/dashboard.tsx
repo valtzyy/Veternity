@@ -275,7 +275,14 @@ export default function Dashboard({ stats, recentOrders, transactions = [] }: Da
                                                 <span className="text-sm font-extrabold text-neutral-950 block">{order.price}</span>
                                                 <span className="text-[10px] text-neutral-400 font-bold">{order.date}</span>
                                             </div>
-                                            {order.button ? (
+                                            {isSeller ? (
+                                                <Link
+                                                    href={`/negotiations/${order.negotiation_id}`}
+                                                    className="border border-neutral-200 text-neutral-700 bg-white hover:bg-neutral-50 px-4 py-2 rounded-xl text-xs font-bold shadow-xs transition-colors cursor-pointer"
+                                                >
+                                                    Lihat Chat
+                                                </Link>
+                                            ) : order.button ? (
                                                 <Link
                                                     href={order.action_url}
                                                     className={`px-4 py-2 rounded-xl text-xs font-bold shadow-xs transition-colors cursor-pointer ${

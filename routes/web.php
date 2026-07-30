@@ -41,6 +41,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/orders/{order}/payment', [PaymentController::class, 'showPayment'])->name('orders.payment');
     Route::post('/orders/{order}/payment', [PaymentController::class, 'processPayment'])->name('orders.payment.store');
     Route::get('/invoices/{invoice}', [PaymentController::class, 'showInvoice'])->name('invoices.show');
+    Route::patch('/orders/{order}/complete', [PaymentController::class, 'completeOrder'])->name('orders.complete');
 
     // Chat messages & offer actions
     Route::post('/negotiations/{negotiation}/messages', [ChatMessageController::class, 'store'])->name('negotiations.messages.store');

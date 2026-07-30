@@ -246,7 +246,7 @@ export default function NegotiationShow({ negotiation, product, buyer, seller, c
 
                     {/* Navigation Links */}
                     <nav className="hidden items-center gap-8 md:flex">
-                        <Link href="/" className="font-medium text-slate-600 transition-colors hover:text-emerald-600">
+                        <Link href="/dashboard" className="font-medium text-slate-600 transition-colors hover:text-emerald-600">
                             Home
                         </Link>
                         <Link href="#" className="font-medium text-slate-600 transition-colors hover:text-emerald-600">
