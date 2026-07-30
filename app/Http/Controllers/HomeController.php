@@ -15,8 +15,12 @@ class HomeController extends Controller
     /**
      * Display the public landing page.
      */
-    public function index(): Response
+    public function index()
     {
+        if (Auth::check()) {
+            return redirect()->route('dashboard');
+        }
+
         $categories = Category::withCount('products')
             ->withSum('products', 'stock')
             ->orderBy('products_count', 'desc')
