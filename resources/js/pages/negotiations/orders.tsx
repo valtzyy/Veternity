@@ -1,9 +1,9 @@
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
-import { Head, Link, usePoll } from '@inertiajs/react';
+import { Head, Link, router, usePoll } from '@inertiajs/react';
 import { 
     ShoppingBag, Calendar, CheckCircle2, MessageSquare, Wallet, 
-    ArrowRight, BadgeCheck, MapPin, ChevronRight, Check, X 
+    ArrowRight, BadgeCheck, MapPin, ChevronRight, Check, X, Star, Upload
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -70,6 +70,65 @@ export default function OrdersIndex({ negotiations }: Props) {
     usePoll(5000);
 
     const [activeTab, setActiveTab] = useState('Semua');
+
+    // Ulasan / Rating Modal States
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [selectedNego, setSelectedNego] = useState<Negotiation | null>(null);
+    const [rating, setRating] = useState(0);
+    const [hoverRating, setHoverRating] = useState(0);
+    const [reviewText, setReviewText] = useState('');
+    const [selectedTags, setSelectedTags] = useState<string[]>([]);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const availableTags = [
+        'Produk sesuai deskripsi',
+        'Supplier responsif',
+        'Kualitas bagus',
+        'Pengiriman cepat',
+        'Harga wajar',
+        'Kemasan rapi'
+    ];
+
+    const toggleTag = (tag: string) => {
+        if (selectedTags.includes(tag)) {
+            setSelectedTags(selectedTags.filter(t => t !== tag));
+        } else {
+            setSelectedTags([...selectedTags, tag]);
+        }
+    };
+
+    const handleOpenRatingModal = (nego: Negotiation) => {
+        setSelectedNego(nego);
+        setRating(0);
+        setReviewText('');
+        setSelectedTags([]);
+        setIsModalOpen(true);
+    };
+
+    const handleCloseRatingModal = () => {
+        setIsModalOpen(false);
+        setSelectedNego(null);
+    };
+
+    const handleSubmitRating = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (rating === 0 || !selectedNego?.order) return;
+
+        setIsSubmitting(true);
+        router.post(route('orders.ratings.store', selectedNego.order.id), {
+            rating: rating,
+            review: reviewText,
+            tags: selectedTags
+        }, {
+            onSuccess: () => {
+                handleCloseRatingModal();
+                setIsSubmitting(false);
+            },
+            onError: () => {
+                setIsSubmitting(false);
+            }
+        });
+    };
 
     // Calculate step index from negotiation & order status
     const getStepDetails = (nego: Negotiation) => {
@@ -156,7 +215,11 @@ export default function OrdersIndex({ negotiations }: Props) {
                         <div 
                             key={stat.label}
                             onClick={() => setActiveTab(stat.label)}
-                            className="bg-white border border-neutral-100/60 rounded-2xl p-4 shadow-xs text-center cursor-pointer hover:border-neutral-200 transition-all flex flex-col items-center justify-center"
+                            className={`border rounded-2xl p-4 shadow-xs text-center cursor-pointer transition-all flex flex-col items-center justify-center ${
+                                activeTab === stat.label 
+                                ? 'bg-white border-[#2e5a36] ring-2 ring-[#2e5a36]/10' 
+                                : 'bg-white border-neutral-100/60 hover:border-neutral-200'
+                            }`}
                         >
                             <span className="text-[28px] font-black text-neutral-900 leading-none">{stat.count}</span>
                             <span className="text-xs text-neutral-400 font-bold mt-2">{stat.label}</span>
@@ -247,7 +310,7 @@ export default function OrdersIndex({ negotiations }: Props) {
                                                     {[0, 1, 2, 3, 4].map((stepIdx) => {
                                                         const isDone = step >= stepIdx;
                                                         return (
-                                                            <div key={stepIdx} className="flex items-center">
+                                                            <div key={stepIdx} className="flex items-center" key={stepIdx}>
                                                                 <div className={`h-4.5 w-4.5 rounded-full flex items-center justify-center border-2 transition-all ${
                                                                     isDone 
                                                                     ? 'bg-[#2e5a36] border-[#2e5a36] text-white' 
@@ -290,7 +353,10 @@ export default function OrdersIndex({ negotiations }: Props) {
 
                                             <div className="flex items-center gap-2">
                                                 {step === 4 && (
-                                                    <button className="bg-white hover:bg-neutral-50 text-neutral-700 border border-neutral-200 px-4 py-2.5 rounded-xl text-xs font-bold shadow-xs">
+                                                    <button 
+                                                        onClick={() => handleOpenRatingModal(nego)}
+                                                        className="bg-white hover:bg-neutral-50 text-neutral-700 border border-neutral-200 px-4 py-2.5 rounded-xl text-xs font-bold shadow-xs cursor-pointer"
+                                                    >
                                                         Beri Ulasan
                                                     </button>
                                                 )}
@@ -331,6 +397,125 @@ export default function OrdersIndex({ negotiations }: Props) {
                     </div>
                 </div>
             </div>
+
+            {/* ── RATINGS MODAL ──────────────────────────────── */}
+            {isModalOpen && selectedNego && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-neutral-900/60 backdrop-blur-xs">
+                    <div className="bg-white rounded-3xl overflow-hidden shadow-2xl max-w-lg w-full transform transition-all flex flex-col border border-neutral-100">
+                        {/* Green Header */}
+                        <div className="bg-[#2e5a36] text-white p-6 relative flex items-center gap-4">
+                            <button 
+                                onClick={handleCloseRatingModal}
+                                className="absolute top-4 right-4 text-white/80 hover:text-white hover:scale-105 transition-all cursor-pointer"
+                            >
+                                <X className="h-6 w-6" />
+                            </button>
+                            
+                            <div className="h-14 w-14 rounded-xl overflow-hidden bg-white/10 flex-shrink-0 border border-white/20">
+                                <img 
+                                    src={selectedNego.product?.images?.[0]?.image_url || '/images/placeholder.jpg'} 
+                                    alt={selectedNego.product?.title} 
+                                    className="w-full h-full object-cover"
+                                />
+                            </div>
+                            <div>
+                                <h3 className="font-extrabold text-base capitalize">{selectedNego.product?.title}</h3>
+                                <p className="text-xs text-white/80 font-medium mt-0.5">{selectedNego.seller?.name}</p>
+                            </div>
+                        </div>
+
+                        {/* Modal Body */}
+                        <form onSubmit={handleSubmitRating} className="p-6 space-y-6 flex-1">
+                            {/* Stars rating selection */}
+                            <div className="text-center space-y-3">
+                                <h4 className="font-extrabold text-neutral-900 text-base">Seberapa puas Anda dengan produk ini?</h4>
+                                <div className="flex justify-center items-center gap-2.5">
+                                    {[1, 2, 3, 4, 5].map((starIdx) => {
+                                        const isFilled = hoverRating >= starIdx || (hoverRating === 0 && rating >= starIdx);
+                                        return (
+                                            <button
+                                                key={starIdx}
+                                                type="button"
+                                                onClick={() => setRating(starIdx)}
+                                                onMouseEnter={() => setHoverRating(starIdx)}
+                                                onMouseLeave={() => setHoverRating(0)}
+                                                className="cursor-pointer transition-all hover:scale-110 active:scale-95"
+                                            >
+                                                <Star className={`h-8 w-8 transition-colors ${
+                                                    isFilled 
+                                                    ? 'fill-[#f43f5e] text-[#f43f5e]' // Pink/red star like mockup
+                                                    : 'text-neutral-200 fill-none'
+                                                }`} />
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+
+                            {/* Tags / Chips section */}
+                            <div className="space-y-3">
+                                <h4 className="text-[10px] font-black text-neutral-400 uppercase tracking-widest">Pilih yang sesuai</h4>
+                                <div className="flex flex-wrap gap-2">
+                                    {availableTags.map((tag) => {
+                                        const isSelected = selectedTags.includes(tag);
+                                        return (
+                                            <button
+                                                key={tag}
+                                                type="button"
+                                                onClick={() => toggleTag(tag)}
+                                                className={`px-4 py-2.5 rounded-full text-xs font-bold transition-all border cursor-pointer ${
+                                                    isSelected
+                                                    ? 'bg-[#f0f7f1] text-[#2e5a36] border-[#2e5a36]/30'
+                                                    : 'bg-white text-neutral-500 border-neutral-200 hover:bg-neutral-50'
+                                                }`}
+                                            >
+                                                {tag}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+
+                            {/* Textarea review */}
+                            <div className="space-y-2">
+                                <h4 className="text-[10px] font-black text-neutral-400 uppercase tracking-widest">Ceritakan Pengalaman Anda</h4>
+                                <div className="relative">
+                                    <textarea
+                                        value={reviewText}
+                                        onChange={(e) => setReviewText(e.target.value.slice(0, 500))}
+                                        rows={4}
+                                        placeholder="Bagikan pengalaman Anda menggunakan produk ini. Ulasan jujur Anda sangat membantu buyer lain..."
+                                        className="w-full rounded-2xl border-transparent bg-[#f6faf6] p-4 text-xs sm:text-sm text-neutral-900 focus:border-[#2e5a36] focus:ring-2 focus:ring-[#2e5a36]/20 transition-all outline-none placeholder-neutral-400 font-medium resize-none"
+                                    />
+                                    <span className="absolute bottom-3 right-4 text-[10px] text-neutral-400 font-bold">
+                                        {reviewText.length}/500
+                                    </span>
+                                </div>
+                            </div>
+
+                            {/* Actions / Submit button */}
+                            <div className="space-y-3 pt-2">
+                                <button
+                                    type="submit"
+                                    disabled={rating === 0 || isSubmitting}
+                                    className={`w-full py-4 rounded-full font-bold text-sm shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                                        rating === 0 
+                                        ? 'bg-neutral-100 text-neutral-400 cursor-not-allowed shadow-none' 
+                                        : 'bg-[#2e5a36] hover:bg-[#234529] text-white active:scale-[0.98]'
+                                    }`}
+                                >
+                                    <Star className="h-4.5 w-4.5 fill-current" /> Kirim Ulasan
+                                </button>
+                                {rating === 0 && (
+                                    <p className="text-center text-[10px] text-neutral-400 font-bold uppercase tracking-wider">
+                                        Pilih bintang terlebih dahulu
+                                    </p>
+                                )}
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </AppLayout>
     );
 }
