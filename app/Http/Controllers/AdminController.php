@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Product;
 use App\Models\User;
+use Illuminate\Support\Facades\Cache;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -14,14 +15,16 @@ class AdminController extends Controller
      */
     public function dashboard(): Response
     {
-        $stats = [
-            'total_users' => User::count(),
-            'total_sellers' => User::where('role', 'seller')->count(),
-            'total_buyers' => User::where('role', 'buyer')->count(),
-            'total_products' => Product::count(),
-            'pending_approvals' => Product::where('status', 'pending_review')->count(),
-            'total_waste_prevented' => Product::where('status', 'available')->sum('stock'), // Placeholder for social impact
-        ];
+        $stats = Cache::remember('admin_dashboard_stats', 60, function () {
+            return [
+                'total_users' => User::count(),
+                'total_sellers' => User::where('role', 'seller')->count(),
+                'total_buyers' => User::where('role', 'buyer')->count(),
+                'total_products' => Product::count(),
+                'pending_approvals' => Product::where('status', 'pending_review')->count(),
+                'total_waste_prevented' => Product::where('status', 'available')->sum('stock'),
+            ];
+        });
 
         return Inertia::render('admin/dashboard', [
             'stats' => $stats,

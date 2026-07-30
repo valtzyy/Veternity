@@ -8,6 +8,7 @@ use Cloudinary\Cloudinary as CloudinarySdk;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 
 class ChatMessageController extends Controller
 {
@@ -116,6 +117,9 @@ class ChatMessageController extends Controller
         ]);
 
         $negotiation->touch();
+
+        // Invalidate buyer dashboard cache so next visit shows updated status
+        Cache::forget("buyer_dashboard_{$negotiation->buyer_id}");
 
         return back();
     }

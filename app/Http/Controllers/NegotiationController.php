@@ -172,23 +172,30 @@ class NegotiationController extends Controller
         }
 
         $negotiation->load([
-            'product.seller',
-            'product.images',
-            'buyer',
-            'seller',
-            'messages.sender',
-            'order.invoice',
+            'product.seller:id,name',
+            'product.images:id,product_id,image_url',
+            'buyer:id,name,email',
+            'seller:id,name,email',
+            'messages.sender:id,name',
+            'order.invoice:id,order_id,invoice_number',
         ]);
 
-        // List active negotiations for the right sidebar
-        $activeNegotiations = Negotiation::with(['product', 'buyer', 'seller', 'messages' => function ($q) {
-            $q->latest('created_at')->limit(1);
-        }])
+        // Load sidebar negotiations with minimal columns
+        $activeNegotiations = Negotiation::with([
+            'product:id,title',
+            'messages' => function ($q) {
+                $q->select('id', 'negotiation_id', 'message', 'message_type', 'created_at')
+                    ->latest('created_at')
+                    ->limit(1);
+            },
+        ])
+            ->select('id', 'product_id', 'buyer_id', 'seller_id', 'status', 'updated_at')
             ->where(function ($query) use ($userId) {
                 $query->where('buyer_id', $userId)
                     ->orWhere('seller_id', $userId);
             })
             ->latest('updated_at')
+            ->limit(20)
             ->get();
 
         return Inertia::render('negotiations/show', [
@@ -209,15 +216,14 @@ class NegotiationController extends Controller
         $userId = Auth::id();
 
         $negotiations = Negotiation::with([
-            'product.seller',
-            'product.images',
-            'buyer',
-            'seller',
-            'order.invoice',
-            'messages' => function ($q) {
-                $q->latest('created_at')->limit(1);
-            },
+            'product:id,title,reference_price,stock,unit,seller_id',
+            'product.seller:id,name',
+            'product.images:id,product_id,image_url',
+            'seller:id,name',
+            'order:id,negotiation_id,order_number,final_price,final_quantity,status,created_at',
+            'order.invoice:id,order_id,invoice_number',
         ])
+            ->select('id', 'product_id', 'buyer_id', 'seller_id', 'status', 'agreed_price', 'agreed_quantity', 'updated_at')
             ->where('buyer_id', $userId)
             ->latest('updated_at')
             ->get();
