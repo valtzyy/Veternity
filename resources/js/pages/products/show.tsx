@@ -1,7 +1,7 @@
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router, usePage } from '@inertiajs/react';
-import { Leaf, MapPin, BadgeCheck, ShieldCheck, Calendar, MessageSquare, CreditCard, ChevronRight, Phone, MessageCircle, Layers, ArrowLeft } from 'lucide-react';
+import { Leaf, MapPin, BadgeCheck, ShieldCheck, Calendar, MessageSquare, CreditCard, ChevronRight, Phone, MessageCircle, Layers, Star, ArrowLeft } from 'lucide-react';
 import { useState } from 'react';
 
 interface ProductImage {
@@ -34,9 +34,10 @@ interface Product {
 interface Props {
     product: Product;
     relatedProducts: Product[];
+    isFavorited: boolean;
 }
 
-export default function Show({ product, relatedProducts }: Props) {
+export default function Show({ product, relatedProducts, isFavorited }: Props) {
     const { auth } = usePage().props as any;
     const currentUser = auth?.user;
 
@@ -47,6 +48,12 @@ export default function Show({ product, relatedProducts }: Props) {
     const [activeImage, setActiveImage] = useState<string>(
         images.find(img => img.is_primary)?.image_url || images[0].image_url
     );
+
+    const handleToggleFavorite = () => {
+        router.post(route('products.favorite', product.id), {}, {
+            preserveScroll: true,
+        });
+    };
 
     const getEcoScore = (id: number) => {
         const scores = [94, 88, 97, 91, 85, 92, 89, 96];
@@ -90,7 +97,18 @@ export default function Show({ product, relatedProducts }: Props) {
                 {/* Upper Breadcrumbs details section */}
                 <div className="flex items-center justify-between">
                     <div>
-                        <h1 className="text-2xl font-bold tracking-tight text-neutral-900 capitalize">{product.title}</h1>
+                        <div className="flex items-center gap-3">
+                            <h1 className="text-2xl font-bold tracking-tight text-neutral-900 capitalize">{product.title}</h1>
+                            {currentUser && currentUser.role === 'buyer' && (
+                                <button 
+                                    onClick={handleToggleFavorite}
+                                    className="h-8 w-8 rounded-full bg-white hover:bg-neutral-50 border border-neutral-200 flex items-center justify-center transition-all shadow-xs cursor-pointer"
+                                    title={isFavorited ? "Hapus dari Favorit" : "Tambah ke Favorit"}
+                                >
+                                    <Star className={`h-4 w-4 ${isFavorited ? 'fill-red-500 text-red-500' : 'text-neutral-400'}`} />
+                                </button>
+                            )}
+                        </div>
                         <p className="text-sm text-neutral-500 mt-1">Detail produk limbah pangan terpilih</p>
                     </div>
                     <Link

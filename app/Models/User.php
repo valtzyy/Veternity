@@ -83,6 +83,14 @@ class User extends Authenticatable
     }
 
     /**
+     * Relationship: User has many favorite products.
+     */
+    public function favorites()
+    {
+        return $this->belongsToMany(Product::class, 'favorites')->withTimestamps();
+    }
+
+    /**
      * Relationship: Buyer negotiations.
      */
     public function buyerNegotiations(): HasMany

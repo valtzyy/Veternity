@@ -3,6 +3,7 @@
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\ChatMessageController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\FavoriteController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\NegotiationController;
 use App\Http\Controllers\PaymentController;
@@ -34,6 +35,10 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/negotiations', [NegotiationController::class, 'index'])->name('negotiations.index');
     Route::post('/negotiations', [NegotiationController::class, 'store'])->name('negotiations.store');
     Route::get('/buyer/orders', [NegotiationController::class, 'buyerOrders'])->name('buyer.orders');
+
+    // Favorite routes
+    Route::get('/buyer/favorites', [FavoriteController::class, 'index'])->name('buyer.favorites');
+    Route::post('/products/{product}/favorite', [FavoriteController::class, 'toggle'])->name('products.favorite');
     Route::get('/negotiations/{negotiation}', [NegotiationController::class, 'show'])->name('negotiations.show');
 
     // Checkout & Payment simulation
