@@ -54,25 +54,46 @@ export default function Marketplace({ products, categories, filters }: Props) {
     const [search, setSearch] = useState(filters.search || '');
     const [selectedCategory, setSelectedCategory] = useState<string>(filters.category_id || '');
     const [verifiedOnly, setVerifiedOnly] = useState<boolean>(filters.verified_only || false);
-    const [ecoScore, setEcoScore] = useState<number>(70);
+    const [ecoScore, setEcoScore] = useState<number>(Number(filters.eco_score) || 0);
+    const [sortBy, setSortBy] = useState<string>(filters.sort_by || 'Terbaru');
 
     const handleSearchSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        applyFilters({ search, category_id: selectedCategory, verified_only: verifiedOnly });
+        applyFilters({ search, category_id: selectedCategory, verified_only: verifiedOnly, eco_score: ecoScore, sort_by: sortBy });
     };
 
     const handleCategorySelect = (id: string) => {
         setSelectedCategory(id);
-        applyFilters({ search, category_id: id, verified_only: verifiedOnly });
+        applyFilters({ search, category_id: id, verified_only: verifiedOnly, eco_score: ecoScore, sort_by: sortBy });
     };
 
     const handleVerifiedToggle = (checked: boolean) => {
         setVerifiedOnly(checked);
-        applyFilters({ search, category_id: selectedCategory, verified_only: checked });
+        applyFilters({ search, category_id: selectedCategory, verified_only: checked, eco_score: ecoScore, sort_by: sortBy });
+    };
+
+    const handleEcoScoreChange = (val: number) => {
+        setEcoScore(val);
+    };
+
+    const handleEcoScoreRelease = (val: number) => {
+        applyFilters({ search, category_id: selectedCategory, verified_only: verifiedOnly, eco_score: val, sort_by: sortBy });
+    };
+
+    const handleSortChange = (val: string) => {
+        setSortBy(val);
+        applyFilters({ search, category_id: selectedCategory, verified_only: verifiedOnly, eco_score: ecoScore, sort_by: val });
     };
 
     const applyFilters = (newFilters: any) => {
-        router.get(route('marketplace'), newFilters, {
+        const cleanFilters: any = {};
+        Object.keys(newFilters).forEach((key) => {
+            if (newFilters[key] !== '' && newFilters[key] !== null && newFilters[key] !== undefined && newFilters[key] !== false && newFilters[key] !== 0) {
+                cleanFilters[key] = newFilters[key];
+            }
+        });
+
+        router.get(route('marketplace'), cleanFilters, {
             preserveState: true,
             replace: true,
         });
@@ -191,7 +212,9 @@ export default function Marketplace({ products, categories, filters }: Props) {
                                     min="0"
                                     max="100"
                                     value={ecoScore}
-                                    onChange={(e) => setEcoScore(Number(e.target.value))}
+                                    onChange={(e) => handleEcoScoreChange(Number(e.target.value))}
+                                    onMouseUp={(e) => handleEcoScoreRelease(Number((e.target as HTMLInputElement).value))}
+                                    onTouchEnd={(e) => handleEcoScoreRelease(Number((e.target as HTMLInputElement).value))}
                                     className="w-full accent-[#2e5a36] h-1 bg-neutral-100 rounded-lg appearance-none cursor-pointer"
                                 />
                             </div>
@@ -204,10 +227,14 @@ export default function Marketplace({ products, categories, filters }: Props) {
                             <span>{products.total} produk ditemukan</span>
                             <div className="flex items-center gap-2">
                                 <span>Urutkan:</span>
-                                <select className="bg-white border border-neutral-200/80 rounded-xl px-3 py-1.5 text-neutral-800 outline-none font-bold">
-                                    <option>Terbaru</option>
-                                    <option>Harga terendah</option>
-                                    <option>Harga tertinggi</option>
+                                <select 
+                                    value={sortBy}
+                                    onChange={(e) => handleSortChange(e.target.value)}
+                                    className="bg-white border border-neutral-200/80 rounded-xl px-3 py-1.5 text-neutral-800 outline-none font-bold cursor-pointer"
+                                >
+                                    <option value="Terbaru">Terbaru</option>
+                                    <option value="Harga terendah">Harga terendah</option>
+                                    <option value="Harga tertinggi">Harga tertinggi</option>
                                 </select>
                             </div>
                         </div>

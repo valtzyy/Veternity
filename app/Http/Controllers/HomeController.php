@@ -59,7 +59,7 @@ class HomeController extends Controller
     public function marketplace(Request $request): Response
     {
         $query = Product::with([
-            'seller:id,name',
+            'seller:id,name,is_verified',
             'category:id,name',
             'images',
         ])->available();
@@ -81,13 +81,34 @@ class HomeController extends Controller
             });
         }
 
-        $products = $query->latest()->paginate(12)->withQueryString();
+        // Eco Score filter
+        if ($request->filled('eco_score')) {
+            $ecoMin = (int) $request->eco_score;
+            $driver = $query->getConnection()->getDriverName();
+            if ($driver === 'pgsql') {
+                $query->whereRaw('(ARRAY[94, 88, 97, 91, 85, 92, 89, 96])[MOD(id, 8) + 1] >= ?', [$ecoMin]);
+            } else {
+                $query->whereRaw('ELT(MOD(id, 8) + 1, 94, 88, 97, 91, 85, 92, 89, 96) >= ?', [$ecoMin]);
+            }
+        }
+
+        // Sorting
+        $sortBy = $request->input('sort_by', 'Terbaru');
+        if ($sortBy === 'Harga terendah') {
+            $query->orderBy('reference_price', 'asc');
+        } elseif ($sortBy === 'Harga tertinggi') {
+            $query->orderBy('reference_price', 'desc');
+        } else {
+            $query->latest();
+        }
+
+        $products = $query->paginate(12)->withQueryString();
         $categories = Cache::remember('categories_list', 600, fn () => Category::all(['id', 'name']));
 
         return Inertia::render('marketplace', [
             'products' => $products,
             'categories' => $categories,
-            'filters' => $request->only(['search', 'category_id', 'verified_only']),
+            'filters' => $request->only(['search', 'category_id', 'verified_only', 'eco_score', 'sort_by']),
         ]);
     }
 
