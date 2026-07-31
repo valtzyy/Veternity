@@ -285,9 +285,9 @@ export default function NegotiationShow({ negotiation, product, buyer, seller, c
             </header>
 
             {/* Main Content Container (3 Columns Layout matching Figma) */}
-            <main className="mx-auto grid w-full max-w-[1440px] flex-1 grid-cols-1 items-start gap-6 p-6 lg:grid-cols-12">
+            <main className="mx-auto grid w-full max-w-[1440px] flex-1 grid-cols-1 items-stretch gap-6 p-6 lg:grid-cols-12">
                 {/* Left Sidebar: Product & Transaction Info (3 Cols) */}
-                <aside className="flex flex-col gap-6 lg:col-span-3">
+                <aside className="flex flex-col gap-4 lg:col-span-3">
                     {/* Product Card */}
                     <div className="flex flex-col gap-4 rounded-2xl border border-slate-100 bg-white p-4 shadow-xs">
                         <div className="relative h-44 w-full overflow-hidden rounded-xl bg-slate-100">
@@ -490,7 +490,7 @@ export default function NegotiationShow({ negotiation, product, buyer, seller, c
                 </aside>
 
                 {/* Center Chat Area (6 Cols) */}
-                <section className="flex h-[780px] flex-col overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-xs lg:col-span-6">
+                <section className="flex h-full min-h-[600px] flex-col overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-xs lg:col-span-6">
                     {/* Chat Header */}
                     <div className="z-10 flex items-center justify-between border-b border-slate-100 bg-white p-4">
                         <div className="flex items-center gap-3">
@@ -768,9 +768,9 @@ export default function NegotiationShow({ negotiation, product, buyer, seller, c
                 </section>
 
                 {/* Right Sidebar: Active Conversations & Floating Actions (3 Cols) */}
-                <aside className="relative flex flex-col gap-6 lg:col-span-3">
+                <aside className="relative flex h-full min-h-[600px] flex-col gap-6 lg:col-span-3">
                     {/* Active Conversations Card */}
-                    <div className="flex min-h-[500px] flex-col gap-4 rounded-2xl border border-slate-100 bg-white p-5 shadow-xs">
+                    <div className="flex h-full flex-col gap-4 overflow-y-auto rounded-2xl border border-slate-100 bg-white p-5 shadow-xs">
                         <div>
                             <h2 className="text-base font-bold text-slate-900">Negosiasi Aktif</h2>
                             <p className="text-xs font-medium text-slate-400">{activeNegotiations ? activeNegotiations.length : 0} percakapan</p>

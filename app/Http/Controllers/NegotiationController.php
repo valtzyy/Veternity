@@ -45,6 +45,7 @@ class NegotiationController extends Controller
     {
         $request->validate([
             'product_id' => 'required|exists:products,id',
+            'buy_now' => 'nullable|boolean',
         ]);
 
         $product = Product::findOrFail($request->product_id);
@@ -53,15 +54,57 @@ class NegotiationController extends Controller
         $user = Auth::user();
 
         if ($user->role !== 'buyer') {
-            abort(403, 'Hanya buyer yang dapat memulai negosiasi.');
+            abort(403, 'Hanya buyer yang dapat melakukan transaksi.');
         }
 
-        // Check if active negotiation already exists
+        if ($product->stock <= 0) {
+            return back()->withErrors(['message' => 'Stok produk habis.']);
+        }
+
+        $isBuyNow = $request->boolean('buy_now');
+
+        // Check if active (unfinished) negotiation already exists
         $existingNegotiation = Negotiation::where('product_id', $product->id)
             ->where('buyer_id', $buyerId)
             ->where('seller_id', $sellerId)
-            ->whereIn('status', ['negotiating'])
+            ->whereIn('status', ['pending', 'negotiating', 'agreed'])
+            ->whereDoesntHave('order', function ($query) {
+                $query->whereIn('status', ['completed', 'cancelled']);
+            })
+            ->latest()
             ->first();
+
+        if ($isBuyNow) {
+            $agreedQuantity = min($product->stock, max(1, $product->minimum_order));
+            $agreedPrice = $product->reference_price;
+
+            if ($existingNegotiation) {
+                $existingNegotiation->update([
+                    'status' => 'agreed',
+                    'agreed_price' => $agreedPrice,
+                    'agreed_quantity' => $agreedQuantity,
+                ]);
+                $negotiation = $existingNegotiation;
+            } else {
+                $negotiation = Negotiation::create([
+                    'product_id' => $product->id,
+                    'buyer_id' => $buyerId,
+                    'seller_id' => $sellerId,
+                    'status' => 'agreed',
+                    'agreed_price' => $agreedPrice,
+                    'agreed_quantity' => $agreedQuantity,
+                ]);
+            }
+
+            $negotiation->messages()->create([
+                'sender_id' => $buyerId,
+                'message_type' => 'system',
+                'message' => 'Pembeli memilih Bayar Sekarang untuk produk '.$product->title.'.',
+                'created_at' => now(),
+            ]);
+
+            return redirect()->route('negotiations.checkout', $negotiation->id);
+        }
 
         if ($existingNegotiation) {
             return redirect()->route('negotiations.show', $existingNegotiation->id);
