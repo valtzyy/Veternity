@@ -68,27 +68,15 @@ export function AppSidebar() {
             },
             {
                 title: 'Pesanan',
-                url: '/seller/orders',
+                url: '/negotiations',
                 icon: BookOpen,
                 badge: active_orders_count,
                 badgeColor: 'bg-blue-600',
             },
             {
-                title: 'Negosiasi',
-                url: '/negotiations',
-                icon: MessageSquare,
-                badge: unread_negotiations_count,
-                badgeColor: 'bg-amber-50', // Yellow badge
-            },
-            {
                 title: 'Ulasan Pembeli',
                 url: '/seller/reviews',
                 icon: Star,
-            },
-            {
-                title: 'Analitik',
-                url: '/seller/analytics',
-                icon: LayoutGrid,
             },
             {
                 title: 'Profil',

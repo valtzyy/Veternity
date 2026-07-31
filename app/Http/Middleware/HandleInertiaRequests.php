@@ -80,11 +80,22 @@ class HandleInertiaRequests extends Middleware
                     ->count();
             } elseif ($role === 'seller') {
                 $activeOrdersCount = Order::where('seller_id', $userId)
-                    ->whereIn('status', ['waiting_payment', 'paid', 'processing', 'shipping'])
+                    ->where('status', 'paid')
                     ->count();
-                $activeOrdersCount += Negotiation::where('seller_id', $userId)
+
+                $sellerNegos = Negotiation::with(['messages' => function ($q) {
+                    $q->latest('created_at')->limit(1);
+                }])
+                    ->where('seller_id', $userId)
                     ->whereIn('status', ['pending', 'negotiating'])
-                    ->count();
+                    ->get();
+
+                foreach ($sellerNegos as $nego) {
+                    $lastMessage = $nego->messages->first();
+                    if ($lastMessage && $lastMessage->sender_id !== $userId) {
+                        $activeOrdersCount++;
+                    }
+                }
             }
         }
 
