@@ -25,6 +25,7 @@ interface Stats {
     completed_orders: number;
     completed_orders_this_month: string;
     monthly_revenue_total: number;
+    monthly_revenue?: { month: string; amount: number }[];
 }
 
 interface RecentOrder {
@@ -215,8 +216,8 @@ export default function Dashboard({ stats, recentOrders, transactions = [], buye
                                     return bStats.monthly_expenses.map((bar) => {
                                         const pct = Math.round((bar.amount / maxExpense) * 100);
                                         return (
-                                            <div key={bar.month} className="flex flex-col items-center gap-2 w-full group">
-                                                <div className="w-8/12 bg-neutral-100 group-hover:bg-[#2e5a36]/90 rounded-t-lg transition-all duration-300 relative flex justify-center h-28">
+                                            <div key={bar.month} className="flex flex-col items-center gap-2 w-full">
+                                                <div className="w-8/12 bg-neutral-100 rounded-t-lg transition-all duration-300 relative flex justify-center h-28">
                                                     <div 
                                                         className="w-full bg-[#2e5a36] rounded-t-lg absolute bottom-0 transition-all duration-500" 
                                                         style={{ height: `${pct}%` }}
@@ -531,7 +532,7 @@ export default function Dashboard({ stats, recentOrders, transactions = [], buye
                         <div className="rounded-xl border border-neutral-200/60 bg-white p-5 shadow-xs dark:border-neutral-800 dark:bg-neutral-900">
                             <div className="flex items-center justify-between">
                                 <span className="text-xs font-semibold text-neutral-500 uppercase tracking-wider">Produk Aktif</span>
-                                <div className="rounded-lg bg-[#e6f4e9] text-[#2e5a36] dark:bg-emerald-900/30 dark:text-emerald-400 p-2">
+                                <div className="rounded-lg bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 p-2">
                                     <Package className="h-4 w-4" />
                                 </div>
                             </div>
@@ -547,7 +548,7 @@ export default function Dashboard({ stats, recentOrders, transactions = [], buye
                         <div className="rounded-xl border border-neutral-200/60 bg-white p-5 shadow-xs dark:border-neutral-800 dark:bg-neutral-900">
                             <div className="flex items-center justify-between">
                                 <span className="text-xs font-semibold text-neutral-500 uppercase tracking-wider">Negosiasi</span>
-                                <div className="rounded-lg bg-[#e6f4e9] text-[#2e5a36] dark:bg-emerald-900/30 dark:text-emerald-400 p-2">
+                                <div className="rounded-lg bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 p-2">
                                     <MessageSquare className="h-4 w-4" />
                                 </div>
                             </div>
@@ -580,37 +581,47 @@ export default function Dashboard({ stats, recentOrders, transactions = [], buye
                 {/* Monthly Revenue Chart and Recent Orders Grid */}
                 <div className="grid gap-6 lg:grid-cols-3">
                     {/* Revenue Chart Widget */}
-                    <div className="lg:col-span-2 rounded-xl border border-neutral-200/60 bg-white p-6 shadow-xs dark:border-neutral-800 dark:bg-neutral-900">
+                    <div className="lg:col-span-2 rounded-2xl border border-neutral-200/60 bg-white p-6 shadow-xs">
                         <div className="flex justify-between items-center mb-6">
                             <div>
-                                <h2 className="text-base font-bold text-neutral-900 dark:text-white">Pendapatan Bulanan</h2>
-                                <p className="text-xs text-neutral-500">Januari — Juli 2025</p>
+                                <h2 className="text-base font-bold text-neutral-900">Pendapatan Bulanan</h2>
+                                <p className="text-xs text-neutral-500">6 Bulan Terakhir</p>
                             </div>
                             {stats && (
-                                <span className="bg-emerald-50 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 text-xs font-bold px-3 py-1 rounded-full">
+                                <span className="bg-[#e6f4e9] text-[#2e5a36] text-xs font-bold px-3 py-1 rounded-full">
                                     Rp {(stats.monthly_revenue_total / 1000000).toFixed(1)} Jt Total
                                 </span>
                             )}
                         </div>
 
                         {/* Custom visual chart representing months */}
-                        <div className="flex items-end justify-between h-48 pt-6 border-b border-neutral-100 dark:border-neutral-800">
-                            {[
-                                { month: 'Jan', val: 'h-[30%]' },
-                                { month: 'Feb', val: 'h-[45%]' },
-                                { month: 'Mar', val: 'h-[35%]' },
-                                { month: 'Apr', val: 'h-[60%]' },
-                                { month: 'Mei', val: 'h-[75%]' },
-                                { month: 'Jun', val: 'h-[50%]' },
-                                { month: 'Jul', val: 'h-[90%]' },
-                            ].map((bar) => (
-                                <div key={bar.month} className="flex flex-col items-center gap-2 w-full group">
-                                    <div className="w-8/12 bg-emerald-100 dark:bg-emerald-950 group-hover:bg-emerald-600 dark:group-hover:bg-emerald-500 rounded-t-xs transition-all duration-300 relative flex justify-center">
-                                        <div className={`w-full bg-emerald-600 dark:bg-emerald-500 rounded-t-xs absolute bottom-0 ${bar.val}`} />
-                                    </div>
-                                    <span className="text-xs text-neutral-500 dark:text-neutral-400 pb-2">{bar.month}</span>
-                                </div>
-                            ))}
+                        <div className="flex items-end justify-between h-48 pt-6 border-b border-neutral-100">
+                            {(() => {
+                                const chartData = stats?.monthly_revenue || [
+                                    { month: 'Jan', amount: 0 },
+                                    { month: 'Feb', amount: 0 },
+                                    { month: 'Mar', amount: 0 },
+                                    { month: 'Apr', amount: 0 },
+                                    { month: 'Mei', amount: 0 },
+                                    { month: 'Jun', amount: 0 },
+                                    { month: 'Jul', amount: 0 },
+                                ];
+                                const maxRevenue = Math.max(...chartData.map(e => e.amount), 1);
+                                return chartData.map((bar) => {
+                                    const pct = Math.round((bar.amount / maxRevenue) * 100);
+                                    return (
+                                        <div key={bar.month} className="flex flex-col items-center gap-2 w-full">
+                                            <div className="w-8/12 bg-neutral-100 rounded-t-lg transition-all duration-300 relative flex justify-center h-28">
+                                                <div 
+                                                    className="w-full bg-[#2e5a36] rounded-t-lg absolute bottom-0 transition-all duration-500" 
+                                                    style={{ height: `${pct}%` }}
+                                                />
+                                            </div>
+                                            <span className="text-xs text-neutral-500 pb-2">{bar.month}</span>
+                                        </div>
+                                    );
+                                });
+                            })()}
                         </div>
                     </div>
 
