@@ -9,6 +9,7 @@ use App\Services\CloudinaryService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -34,7 +35,7 @@ class ProductController extends Controller
      */
     public function create(): Response
     {
-        $categories = Category::all(['id', 'name']);
+        $categories = Cache::remember('categories_list', 600, fn () => Category::all(['id', 'name']));
 
         return Inertia::render('products/create', [
             'categories' => $categories,
@@ -93,7 +94,7 @@ class ProductController extends Controller
             'status' => 'pending_review',
         ]);
 
-        // Upload images
+        // Upload images to Cloudinary
         if ($request->hasFile('images')) {
             $isPrimary = true;
             foreach ($request->file('images') as $imageFile) {
@@ -105,7 +106,7 @@ class ProductController extends Controller
                     'is_primary' => $isPrimary,
                 ]);
 
-                $isPrimary = false; // Only first image is primary
+                $isPrimary = false;
             }
         }
 
@@ -123,7 +124,7 @@ class ProductController extends Controller
             abort(403, 'Unauthorized action.');
         }
 
-        $categories = Category::all(['id', 'name']);
+        $categories = Cache::remember('categories_list', 600, fn () => Category::all(['id', 'name']));
         $product->load('images');
 
         return Inertia::render('products/edit', [
@@ -188,7 +189,7 @@ class ProductController extends Controller
 
         // Upload new images if present
         if ($request->hasFile('images')) {
-            // Delete old images (or append based on project needs)
+            // Delete old images first
             $product->images()->delete();
 
             $isPrimary = true;

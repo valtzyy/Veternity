@@ -7,6 +7,7 @@ use App\Models\Rating;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -75,14 +76,18 @@ class RatingController extends Controller
      */
     public function sellerReviews(Request $request): Response
     {
-        $reviews = Rating::with([
-            'product:id,title',
-            'buyer:id,name,profile_photo',
-            'order:id',
-        ])
-            ->where('seller_id', Auth::id())
-            ->latest()
-            ->get();
+        $sellerId = Auth::id();
+
+        $reviews = Cache::remember("seller_reviews_{$sellerId}", 60, function () use ($sellerId) {
+            return Rating::with([
+                'product:id,title',
+                'buyer:id,name,profile_photo',
+                'order:id',
+            ])
+                ->where('seller_id', $sellerId)
+                ->latest()
+                ->get();
+        });
 
         return Inertia::render('seller/reviews', [
             'reviews' => $reviews,
@@ -107,6 +112,9 @@ class RatingController extends Controller
             'seller_reply' => $request->input('seller_reply'),
             'seller_replied_at' => now(),
         ]);
+
+        // Invalidate the cached reviews list so the reply appears immediately
+        Cache::forget("seller_reviews_{$rating->seller_id}");
 
         return back()->with('message', 'Balasan ulasan berhasil disimpan.');
     }

@@ -92,6 +92,10 @@ class ChatMessageController extends Controller
 
         $negotiation->touch();
 
+        // Invalidate navbar badge cache for both participants so counts refresh
+        Cache::forget("navbar_counts_{$negotiation->buyer_id}");
+        Cache::forget("navbar_counts_{$negotiation->seller_id}");
+
         return back();
     }
 
@@ -162,6 +166,9 @@ class ChatMessageController extends Controller
 
         $negotiation->touch();
 
+        Cache::forget("navbar_counts_{$negotiation->buyer_id}");
+        Cache::forget("navbar_counts_{$negotiation->seller_id}");
+
         return back();
     }
 
@@ -207,6 +214,9 @@ class ChatMessageController extends Controller
         ]);
 
         $negotiation->touch();
+
+        Cache::forget("navbar_counts_{$negotiation->buyer_id}");
+        Cache::forget("navbar_counts_{$negotiation->seller_id}");
 
         return back();
     }

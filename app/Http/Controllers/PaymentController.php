@@ -96,8 +96,11 @@ class PaymentController extends Controller
             'status' => 'waiting_payment',
         ]);
 
-        // Invalidate buyer dashboard cache
+        // Invalidate buyer dashboard cache and navbar counts
         Cache::forget("buyer_dashboard_{$userId}");
+        Cache::forget("buyer_stats_{$userId}");
+        Cache::forget("navbar_counts_{$userId}");
+        Cache::forget("navbar_counts_{$negotiation->seller_id}");
 
         return redirect()->route('orders.payment', $order->id);
     }
@@ -200,8 +203,12 @@ class PaymentController extends Controller
             'created_at' => now(),
         ]);
 
-        // Invalidate buyer dashboard cache
+        // Invalidate caches for buyer and seller
         Cache::forget("buyer_dashboard_{$userId}");
+        Cache::forget("buyer_stats_{$userId}");
+        Cache::forget("navbar_counts_{$userId}");
+        Cache::forget("seller_stats_{$order->seller_id}");
+        Cache::forget("navbar_counts_{$order->seller_id}");
 
         return redirect()->route('negotiations.show', $order->negotiation_id)
             ->with('message', 'Pembayaran berhasil disimulasikan!');
@@ -255,8 +262,12 @@ class PaymentController extends Controller
             'created_at' => now(),
         ]);
 
-        // Invalidate buyer dashboard cache
+        // Invalidate caches for both buyer and seller
         Cache::forget("buyer_dashboard_{$userId}");
+        Cache::forget("buyer_stats_{$userId}");
+        Cache::forget("navbar_counts_{$userId}");
+        Cache::forget("seller_stats_{$order->seller_id}");
+        Cache::forget("navbar_counts_{$order->seller_id}");
 
         return redirect()->route('buyer.orders')
             ->with('message', 'Pesanan berhasil diselesaikan!');

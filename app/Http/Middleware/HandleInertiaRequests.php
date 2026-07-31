@@ -52,51 +52,54 @@ class HandleInertiaRequests extends Middleware
             $userId = $request->user()->id;
             $role = $request->user()->role;
 
-            // Count active negotiations that need user response (unread messages)
-            $negotiations = Negotiation::with(['messages' => function ($q) {
-                $q->latest('created_at')->limit(1);
-            }])
-                ->where(function ($q) use ($userId) {
-                    $q->where('buyer_id', $userId)
-                        ->orWhere('seller_id', $userId);
-                })
-                ->whereIn('status', ['pending', 'negotiating'])
-                ->get();
+            // Cache navbar counts per-user for 60 seconds to avoid hitting cloud DB on every request
+            $navCounts = Cache::remember("navbar_counts_{$userId}", 60, function () use ($userId, $role) {
+                $unread = 0;
+                $active = 0;
 
-            foreach ($negotiations as $nego) {
-                $lastMessage = $nego->messages->first();
-                if ($lastMessage && $lastMessage->sender_id !== $userId) {
-                    $unreadNegotiationsCount++;
-                }
-            }
-
-            // Count total active orders & pending negotiations
-            if ($role === 'buyer') {
-                $activeOrdersCount = Order::where('buyer_id', $userId)
-                    ->whereIn('status', ['waiting_payment', 'paid', 'processing', 'shipping'])
-                    ->count();
-                $activeOrdersCount += Negotiation::where('buyer_id', $userId)
-                    ->whereIn('status', ['pending', 'negotiating'])
-                    ->count();
-            } elseif ($role === 'seller') {
-                $activeOrdersCount = Order::where('seller_id', $userId)
-                    ->where('status', 'paid')
-                    ->count();
-
-                $sellerNegos = Negotiation::with(['messages' => function ($q) {
+                // Load active negotiations with their last message in a single query
+                $negotiations = Negotiation::with(['messages' => function ($q) {
                     $q->latest('created_at')->limit(1);
                 }])
-                    ->where('seller_id', $userId)
+                    ->where(function ($q) use ($userId) {
+                        $q->where('buyer_id', $userId)
+                            ->orWhere('seller_id', $userId);
+                    })
                     ->whereIn('status', ['pending', 'negotiating'])
-                    ->get();
+                    ->get(['id', 'buyer_id', 'seller_id', 'status']);
 
-                foreach ($sellerNegos as $nego) {
+                foreach ($negotiations as $nego) {
                     $lastMessage = $nego->messages->first();
                     if ($lastMessage && $lastMessage->sender_id !== $userId) {
-                        $activeOrdersCount++;
+                        $unread++;
                     }
                 }
-            }
+
+                if ($role === 'buyer') {
+                    $active = Order::where('buyer_id', $userId)
+                        ->whereIn('status', ['waiting_payment', 'paid', 'processing', 'shipping'])
+                        ->count();
+                    $active += $negotiations->count();
+                } elseif ($role === 'seller') {
+                    $active = Order::where('seller_id', $userId)
+                        ->where('status', 'paid')
+                        ->count();
+
+                    // Seller: count negotiations where the last message is from the buyer (needs response)
+                    $sellerNegos = $negotiations->where('seller_id', $userId);
+                    foreach ($sellerNegos as $nego) {
+                        $lastMessage = $nego->messages->first();
+                        if ($lastMessage && $lastMessage->sender_id !== $userId) {
+                            $active++;
+                        }
+                    }
+                }
+
+                return ['unread' => $unread, 'active' => $active];
+            });
+
+            $unreadNegotiationsCount = $navCounts['unread'];
+            $activeOrdersCount = $navCounts['active'];
         }
 
         return [
