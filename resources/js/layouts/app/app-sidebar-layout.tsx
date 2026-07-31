@@ -9,6 +9,7 @@ export default function AppSidebarLayout({ children, breadcrumbs = [] }: { child
         <AppShell variant="sidebar">
             <AppSidebar />
             <AppContent variant="sidebar">
+                <AppSidebarHeader breadcrumbs={breadcrumbs} />
                 {children}
             </AppContent>
         </AppShell>
