@@ -48,11 +48,11 @@ export function AppSidebar() {
                 url: '/admin/products',
                 icon: ClipboardCheck,
             },
-            {
-                title: 'Profil',
-                url: '/settings/profile',
-                icon: UserCircle2,
-            }
+            // {
+            //     title: 'Profil',
+            //     url: '/settings/profile',
+            //     icon: UserCircle2,
+            // }
         );
     } else if (userRole === 'seller') {
         mainNavItems.push(
@@ -78,11 +78,11 @@ export function AppSidebar() {
                 url: '/seller/reviews',
                 icon: Star,
             },
-            {
-                title: 'Profil',
-                url: '/settings/profile',
-                icon: UserCircle2,
-            }
+            // {
+            //     title: 'Profil',
+            //     url: '/settings/profile',
+            //     icon: UserCircle2,
+            // }
         );
     } else {
         mainNavItems.push(
@@ -108,11 +108,11 @@ export function AppSidebar() {
                 url: '/buyer/favorites',
                 icon: Star,
             },
-            {
-                title: 'Profil',
-                url: '/settings/profile',
-                icon: UserCircle2,
-            }
+            // {
+            //     title: 'Profil',
+            //     url: '/settings/profile',
+            //     icon: UserCircle2,
+            // }
         );
     }
 
