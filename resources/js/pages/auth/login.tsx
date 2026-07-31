@@ -49,8 +49,8 @@ export default function Login({ status, canResetPassword }: LoginProps) {
                     <span className="text-2xl font-bold tracking-tight">ReGuna</span>
                 </div>
 
-                {/* Welcome Message & Stats */}
-                <div className="relative z-10 my-auto flex flex-col gap-8 max-w-md">
+                {/* Welcome Message */}
+                <div className="relative z-10 my-auto flex flex-col gap-6 max-w-md">
                     <div className="flex">
                         <span className="rounded-full bg-white/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-green-200">
                             🟢 Platform B2B #1 Indonesia
@@ -58,53 +58,12 @@ export default function Login({ status, canResetPassword }: LoginProps) {
                     </div>
 
                     <div className="flex flex-col gap-4">
-                        <h1 className="text-4xl font-extrabold tracking-tight leading-tight">
-                            Selamat Datang <br /> di ReGuna
+                        <h1 className="text-4xl font-extrabold tracking-tight leading-tight text-white">
+                            Transforming food waste into profit.
                         </h1>
                         <p className="text-base text-green-100/90 leading-relaxed">
-                            Masuk dan mulai hubungkan bisnis Anda dengan ekosistem daur ulang pangan terbesar di Indonesia.
+                            Jaringan bisnis B2B untuk solusi daur ulang pangan berkelanjutan di seluruh Indonesia. Masuk untuk mulai berkolaborasi.
                         </p>
-                    </div>
-
-                    {/* Stats Cards */}
-                    <div className="grid grid-cols-3 gap-4">
-                        <div className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-md">
-                            <p className="text-xl font-bold text-white">1.2K+</p>
-                            <p className="text-[10px] uppercase tracking-wider text-green-200/80">Bisnis</p>
-                        </div>
-                        <div className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-md">
-                            <p className="text-xl font-bold text-white">8.6K+</p>
-                            <p className="text-[10px] uppercase tracking-wider text-green-200/80">Transaksi</p>
-                        </div>
-                        <div className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-md">
-                            <p className="text-xl font-bold text-white">2.8K t</p>
-                            <p className="text-[10px] uppercase tracking-wider text-green-200/80">Waste Saved</p>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Testimonial Card */}
-                <div className="relative z-10 rounded-2xl border border-white/10 bg-white/5 p-5 backdrop-blur-md">
-                    <p className="text-sm italic leading-relaxed text-green-100/90">
-                        "ReGuna mengubah limbah produksi kami menjadi sumber pendapatan nyata. Platform yang luar biasa."
-                    </p>
-                    <div className="mt-4 flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                            <img
-                                src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=120&h=120"
-                                alt="Sari Wulandari"
-                                className="h-10 w-10 rounded-full object-cover border border-white/20"
-                            />
-                            <div>
-                                <h4 className="text-sm font-semibold text-white">Sari Wulandari</h4>
-                                <p className="text-xs text-green-200/70">CEO, GreenGro Indonesia</p>
-                            </div>
-                        </div>
-                        <div className="flex gap-0.5">
-                            {[...Array(5)].map((_, i) => (
-                                <Star key={i} className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />
-                            ))}
-                        </div>
                     </div>
                 </div>
             </div>
