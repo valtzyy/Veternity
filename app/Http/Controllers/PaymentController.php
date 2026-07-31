@@ -209,4 +209,35 @@ class PaymentController extends Controller
             'seller' => $invoice->order->seller,
         ]);
     }
+
+    /**
+     * Mark a paid (Pickup) order as completed by the buyer.
+     */
+    public function completeOrder(Order $order): RedirectResponse
+    {
+        $userId = Auth::id();
+
+        if ($order->buyer_id !== $userId) {
+            abort(403, 'Hanya buyer yang dapat menyelesaikan pesanan.');
+        }
+
+        if ($order->status !== 'paid') {
+            return back()->withErrors(['message' => 'Pesanan tidak dalam status Pickup. Tidak dapat diselesaikan.']);
+        }
+
+        $order->update([
+            'status' => 'completed',
+            'completed_at' => now(),
+        ]);
+
+        $order->negotiation->messages()->create([
+            'sender_id' => $userId,
+            'message_type' => 'system',
+            'message' => 'Pesanan telah dikonfirmasi selesai oleh buyer. Terima kasih telah menggunakan ReGuna!',
+            'created_at' => now(),
+        ]);
+
+        return redirect()->route('buyer.orders')
+            ->with('message', 'Pesanan berhasil diselesaikan!');
+    }
 }

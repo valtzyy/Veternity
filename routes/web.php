@@ -3,10 +3,12 @@
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\ChatMessageController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\FavoriteController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\NegotiationController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\ProductController;
+use App\Http\Controllers\RatingController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [HomeController::class, 'index'])->name('home');
@@ -33,6 +35,11 @@ Route::middleware(['auth'])->group(function () {
     // Negotiation routes
     Route::get('/negotiations', [NegotiationController::class, 'index'])->name('negotiations.index');
     Route::post('/negotiations', [NegotiationController::class, 'store'])->name('negotiations.store');
+    Route::get('/buyer/orders', [NegotiationController::class, 'buyerOrders'])->name('buyer.orders');
+
+    // Favorite routes
+    Route::get('/buyer/favorites', [FavoriteController::class, 'index'])->name('buyer.favorites');
+    Route::post('/products/{product}/favorite', [FavoriteController::class, 'toggle'])->name('products.favorite');
     Route::get('/negotiations/{negotiation}', [NegotiationController::class, 'show'])->name('negotiations.show');
 
     // Checkout & Payment simulation
@@ -41,6 +48,8 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/orders/{order}/payment', [PaymentController::class, 'showPayment'])->name('orders.payment');
     Route::post('/orders/{order}/payment', [PaymentController::class, 'processPayment'])->name('orders.payment.store');
     Route::get('/invoices/{invoice}', [PaymentController::class, 'showInvoice'])->name('invoices.show');
+    Route::patch('/orders/{order}/complete', [PaymentController::class, 'completeOrder'])->name('orders.complete');
+    Route::post('/orders/{order}/ratings', [RatingController::class, 'store'])->name('orders.ratings.store');
 
     // Chat messages & offer actions
     Route::post('/negotiations/{negotiation}/messages', [ChatMessageController::class, 'store'])->name('negotiations.messages.store');

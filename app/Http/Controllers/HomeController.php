@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Category;
 use App\Models\Product;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -14,8 +15,12 @@ class HomeController extends Controller
     /**
      * Display the public landing page.
      */
-    public function index(): Response
+    public function index()
     {
+        if (Auth::check()) {
+            return redirect()->route('dashboard');
+        }
+
         $categories = Category::withCount('products')
             ->withSum('products', 'stock')
             ->orderBy('products_count', 'desc')
@@ -103,6 +108,7 @@ class HomeController extends Controller
         return Inertia::render('products/show', [
             'product' => $product,
             'relatedProducts' => $relatedProducts,
+            'isFavorited' => Auth::check() ? Auth::user()->favorites()->where('product_id', $product->id)->exists() : false,
         ]);
     }
 }

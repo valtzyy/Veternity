@@ -1,11 +1,12 @@
 import { type SharedData } from '@/types';
-import { Head, Link, useForm, usePage } from '@inertiajs/react';
+import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
 import {
     Check,
     CheckCircle2,
     Clock,
     CreditCard,
     DollarSign,
+    Image as ImageIcon,
     Leaf,
     MessageCircle,
     Phone,
@@ -16,7 +17,7 @@ import {
     ThumbsUp,
     X,
 } from 'lucide-react';
-import { FormEventHandler, useState } from 'react';
+import { FormEventHandler, useRef, useState } from 'react';
 
 interface User {
     id: number;
@@ -109,6 +110,30 @@ export default function NegotiationShow({ negotiation, product, buyer, seller, c
     const [isOfferModalOpen, setIsOfferModalOpen] = useState(false);
     const [counterTargetMessage, setCounterTargetMessage] = useState<ChatMessage | null>(null);
 
+    // Image upload state
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const [selectedImage, setSelectedImage] = useState<File | null>(null);
+    const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
+
+    const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            const file = e.target.files[0];
+            setSelectedImage(file);
+            setImagePreviewUrl(URL.createObjectURL(file));
+        }
+    };
+
+    const clearImageSelection = () => {
+        setSelectedImage(null);
+        if (imagePreviewUrl) {
+            URL.revokeObjectURL(imagePreviewUrl);
+            setImagePreviewUrl(null);
+        }
+        if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+        }
+    };
+
     // Form for text message
     const messageForm = useForm({
         message_type: 'text' as const,
@@ -122,14 +147,32 @@ export default function NegotiationShow({ negotiation, product, buyer, seller, c
         offer_quantity: product.stock ? String(product.stock) : '1',
     });
 
-    // Handle sending standard text chat
+    // Handle sending standard text or image chat
     const handleSendMessage: FormEventHandler = (e) => {
         e.preventDefault();
-        if (!messageForm.data.message.trim()) return;
+        if (!messageForm.data.message.trim() && !selectedImage) return;
 
-        messageForm.post(route('negotiations.messages.store', negotiation.id), {
-            onSuccess: () => messageForm.reset('message'),
-        });
+        if (selectedImage) {
+            router.post(
+                route('negotiations.messages.store', negotiation.id),
+                {
+                    message_type: 'image',
+                    message: messageForm.data.message || '',
+                    image: selectedImage,
+                },
+                {
+                    forceFormData: true,
+                    onSuccess: () => {
+                        messageForm.reset('message');
+                        clearImageSelection();
+                    },
+                }
+            );
+        } else {
+            messageForm.post(route('negotiations.messages.store', negotiation.id), {
+                onSuccess: () => messageForm.reset('message'),
+            });
+        }
     };
 
     // Handle submitting an offer
@@ -203,7 +246,7 @@ export default function NegotiationShow({ negotiation, product, buyer, seller, c
 
                     {/* Navigation Links */}
                     <nav className="hidden items-center gap-8 md:flex">
-                        <Link href="/" className="font-medium text-slate-600 transition-colors hover:text-emerald-600">
+                        <Link href="/dashboard" className="font-medium text-slate-600 transition-colors hover:text-emerald-600">
                             Home
                         </Link>
                         <Link href="#" className="font-medium text-slate-600 transition-colors hover:text-emerald-600">
@@ -220,7 +263,7 @@ export default function NegotiationShow({ negotiation, product, buyer, seller, c
                     {/* Navigation / User links */}
                     <div className="flex items-center gap-4">
                         <Link href={route('negotiations.index')} className="text-sm font-semibold text-slate-700 hover:text-slate-900">
-                            Daftar Negosiasi
+                            Pesanan Saya
                         </Link>
                         <span className="text-xs font-semibold text-emerald-700">
                             {authUser?.name} ({isBuyer ? 'Buyer' : 'Seller'})
@@ -591,13 +634,18 @@ export default function NegotiationShow({ negotiation, product, buyer, seller, c
                                         )}
                                         <div className={`flex flex-col ${isSelf ? 'items-end' : 'items-start'}`}>
                                             <div
-                                                className={`p-4 text-sm leading-relaxed shadow-2xs ${
+                                                className={`p-3 text-sm leading-relaxed shadow-2xs ${
                                                     isSelf
                                                         ? 'rounded-2xl rounded-tr-xs bg-emerald-800 text-white'
                                                         : 'rounded-2xl rounded-tl-xs border border-amber-100/60 bg-amber-50/60 text-slate-800'
                                                 }`}
                                             >
-                                                {msg.message}
+                                                {msg.image_url && (
+                                                    <a href={msg.image_url} target="_blank" rel="noopener noreferrer" className="block mb-2 overflow-hidden rounded-xl">
+                                                        <img src={msg.image_url} alt="Lampiran Foto" className="max-h-60 max-w-full rounded-xl object-cover hover:opacity-95 transition-opacity" />
+                                                    </a>
+                                                )}
+                                                {msg.message && <p>{msg.message}</p>}
                                             </div>
                                             <span className="mt-1 block text-[11px] text-slate-400">
                                                 {msg.created_at
@@ -618,8 +666,35 @@ export default function NegotiationShow({ negotiation, product, buyer, seller, c
                         )}
                     </div>
 
+                    {/* Image Preview Banner */}
+                    {imagePreviewUrl && (
+                        <div className="flex items-center justify-between border-t border-slate-100 bg-slate-50 px-4 py-2">
+                            <div className="flex items-center gap-3">
+                                <img src={imagePreviewUrl} alt="Preview Foto" className="h-12 w-12 rounded-lg object-cover border border-slate-200" />
+                                <span className="text-xs font-medium text-slate-600 truncate max-w-[200px]">
+                                    {selectedImage?.name}
+                                </span>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={clearImageSelection}
+                                className="rounded-full p-1 text-slate-400 hover:bg-slate-200 hover:text-slate-600"
+                            >
+                                <X className="h-4 w-4" />
+                            </button>
+                        </div>
+                    )}
+
                     {/* Chat Input Bar */}
-                    <form onSubmit={handleSendMessage} className="flex items-center gap-3 border-t border-slate-100 bg-white p-4">
+                    <form onSubmit={handleSendMessage} className="flex items-center gap-2 border-t border-slate-100 bg-white p-4">
+                        <input
+                            type="file"
+                            ref={fileInputRef}
+                            accept="image/*"
+                            onChange={handleImageSelect}
+                            className="hidden"
+                        />
+
                         <button
                             type="button"
                             disabled={negotiation.status === 'agreed'}
@@ -627,10 +702,19 @@ export default function NegotiationShow({ negotiation, product, buyer, seller, c
                                 setCounterTargetMessage(null);
                                 setIsOfferModalOpen(true);
                             }}
-                            className="flex items-center gap-1.5 rounded-full border border-emerald-200/50 bg-emerald-50 px-4 py-2.5 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-100 disabled:opacity-40"
+                            className="flex items-center gap-1.5 rounded-full border border-emerald-200/50 bg-emerald-50 px-3.5 py-2.5 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-100 disabled:opacity-40"
                         >
                             <DollarSign className="h-4 w-4" />
                             Tawar
+                        </button>
+
+                        <button
+                            type="button"
+                            onClick={() => fileInputRef.current?.click()}
+                            title="Upload Foto"
+                            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:text-emerald-700 transition-colors cursor-pointer"
+                        >
+                            <ImageIcon className="h-4 w-4" />
                         </button>
 
                         <div className="relative flex flex-1 items-center">
@@ -638,15 +722,15 @@ export default function NegotiationShow({ negotiation, product, buyer, seller, c
                                 type="text"
                                 value={messageForm.data.message}
                                 onChange={(e) => messageForm.setData('message', e.target.value)}
-                                placeholder="Ketik pesan..."
+                                placeholder={selectedImage ? 'Tambah keterangan foto (opsional)...' : 'Ketik pesan...'}
                                 className="w-full rounded-full border-none bg-[#F4F6F8] px-5 py-3 text-sm text-slate-800 placeholder-slate-400 outline-none focus:ring-2 focus:ring-emerald-500"
                             />
                         </div>
 
                         <button
                             type="submit"
-                            disabled={messageForm.processing || !messageForm.data.message.trim()}
-                            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-white shadow-xs transition-all hover:scale-105 hover:bg-emerald-700 disabled:opacity-50"
+                            disabled={messageForm.processing || (!messageForm.data.message.trim() && !selectedImage)}
+                            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-white shadow-xs transition-all hover:scale-105 hover:bg-emerald-700 disabled:opacity-50 cursor-pointer"
                         >
                             <Send className="h-5 w-5 translate-x-0.5 -translate-y-0.5" />
                         </button>

@@ -1,192 +1,256 @@
-import { Head, Link, useForm, usePage } from '@inertiajs/react';
-import {
-    ArrowRight,
-    BadgeCheck,
-    CheckCircle2,
-    Clock,
-    Leaf,
-    MessageSquare,
-    Package,
-    Plus,
-    Store,
-    User as UserIcon,
-} from 'lucide-react';
-import { FormEventHandler } from 'react';
+import AppLayout from '@/layouts/app-layout';
+import { type BreadcrumbItem } from '@/types';
+import { Head, Link, router } from '@inertiajs/react';
+import { ShoppingBag, Search, Filter, MessageSquare, CreditCard, ChevronRight, CheckCircle2, ArrowRight } from 'lucide-react';
+import { useState } from 'react';
+import { usePage } from '@inertiajs/react';
 
-interface Product {
-    id: number;
-    title: string;
-    reference_price: number;
-    stock: number;
-    unit: string;
-    seller?: {
-        id: number;
-        name: string;
-    };
-}
+const breadcrumbs: BreadcrumbItem[] = [
+    {
+        title: 'Dashboard',
+        href: '/dashboard',
+    },
+    {
+        title: 'Pesanan Saya',
+        href: '/negotiations',
+    },
+];
 
-interface Negotiation {
+export interface Transaction {
     id: number;
-    product_id: number;
-    buyer_id: number;
-    seller_id: number;
-    status: string;
-    updated_at: string;
-    product?: Product;
-    buyer?: { name: string };
-    seller?: { name: string };
-    messages?: Array<{ message: string; created_at: string }>;
+    negotiation_id: number;
+    order_id?: number | null;
+    code: string;
+    name: string;
+    seller: string;
+    qty: string;
+    price: string;
+    date: string;
+    status: 'Menunggu' | 'Negosiasi' | 'Pembayaran' | 'Pickup' | 'Selesai' | 'Batal';
+    step: number;
+    button: string | null;
+    action_url: string;
+    complete_url?: string | null;
+    nego?: boolean;
 }
 
 interface IndexProps {
-    negotiations: Negotiation[];
-    sampleProduct?: Product | null;
+    transactions?: Transaction[];
 }
 
-export default function NegotiationIndex({ negotiations, sampleProduct }: IndexProps) {
-    const { post, processing } = useForm({
-        product_id: sampleProduct ? sampleProduct.id : 1,
-    });
+export default function NegotiationIndex({ transactions = [] }: IndexProps) {
+    const { auth } = usePage<any>().props;
+    const isSeller = auth?.user?.role === 'seller';
 
-    const handleCreateNegotiation: FormEventHandler = (e) => {
-        e.preventDefault();
-        post(route('negotiations.store'));
+    const [orderTab, setOrderTab] = useState('Semua');
+    const [searchQuery, setSearchQuery] = useState('');
+
+    const handleCompleteOrder = (completeUrl: string) => {
+        if (window.confirm('Apakah Anda yakin pesanan ini telah selesai diterima?')) {
+            router.patch(completeUrl);
+        }
     };
 
+    const filteredTransactions = transactions.filter((item) => {
+        const matchesTab = orderTab === 'Semua' || item.status === orderTab;
+        const matchesSearch =
+            searchQuery.trim() === '' ||
+            item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            item.seller.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            item.code.toLowerCase().includes(searchQuery.toLowerCase());
+        return matchesTab && matchesSearch;
+    });
+
     return (
-        <div className="min-h-screen bg-[#F8FAFC] text-slate-800">
-            <Head title="Negotiation Development - ReGuna" />
+        <AppLayout breadcrumbs={breadcrumbs}>
+            <Head title="Pesanan Saya - ReGuna" />
 
-            {/* Simple App Header */}
-            <header className="sticky top-0 z-50 border-b border-slate-200 bg-white">
-                <div className="mx-auto flex h-20 max-w-[1440px] items-center justify-between px-6">
-                    <Link href="/" className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-600 text-white shadow-xs">
-                            <Leaf className="h-6 w-6" />
-                        </div>
-                        <span className="text-2xl font-bold tracking-tight text-slate-900">ReGuna</span>
-                    </Link>
-                    <nav className="hidden items-center gap-8 md:flex">
-                        <Link href="/" className="font-medium text-slate-600 transition-colors hover:text-emerald-600">
-                            Home
-                        </Link>
-                        <Link href="/dashboard" className="font-medium text-slate-600 transition-colors hover:text-emerald-600">
-                            Dashboard
-                        </Link>
-                        <Link href="/negotiations" className="font-bold text-emerald-600">
-                            Negosiasi
-                        </Link>
-                    </nav>
-                </div>
-            </header>
-
-            {/* Content Container */}
-            <main className="mx-auto max-w-5xl px-6 py-10">
-                <div className="mb-8 flex items-center justify-between">
+            <div className="flex h-full flex-1 flex-col gap-6 p-6 bg-[#f6faf6]">
+                {/* Header title */}
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                     <div>
-                        <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">
-                            Negotiation Development Page
+                        <h1 className="text-2xl font-bold tracking-tight text-[#2e5a36]">
+                            Pesanan Saya
                         </h1>
-                        <p className="mt-1 text-sm text-slate-500">
-                            Halaman pengembang &amp; daftar sesi negosiasi aktif aplikasi ReGuna.
+                        <p className="text-sm text-neutral-500 mt-1">
+                            Pusat kelola seluruh lifecycle transaksi &amp; negosiasi limbah pangan Anda.
                         </p>
                     </div>
-                </div>
 
-                {/* Prototype Action Card */}
-                <div className="mb-10 overflow-hidden rounded-3xl border border-emerald-100 bg-white p-6 shadow-sm ring-1 ring-emerald-500/10">
-                    <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
-                        <div className="space-y-3">
-                            <div className="inline-flex items-center gap-2 rounded-full bg-emerald-100/70 px-3 py-1 text-xs font-semibold text-emerald-800">
-                                <Package className="h-3.5 w-3.5" />
-                                Prototype Development Mode
-                            </div>
-                            <h2 className="text-xl font-bold text-slate-900">
-                                Product: {sampleProduct ? sampleProduct.title : 'Ampas Tahu Premium'}
-                            </h2>
-                            <div className="flex flex-wrap items-center gap-4 text-sm text-slate-600">
-                                <span className="flex items-center gap-1.5 font-medium">
-                                    <Store className="h-4 w-4 text-emerald-600" />
-                                    Seller: {sampleProduct?.seller ? sampleProduct.seller.name : 'CV Sari Organik'}
-                                </span>
-                                <span className="flex items-center gap-1.5 font-medium">
-                                    <Clock className="h-4 w-4 text-amber-500" />
-                                    Status: <span className="font-bold text-amber-600">Negotiating</span>
-                                </span>
-                            </div>
-                        </div>
-
-                        {sampleProduct ? (
-                            <form onSubmit={handleCreateNegotiation}>
-                                <button
-                                    type="submit"
-                                    disabled={processing}
-                                    className="inline-flex items-center justify-center gap-2 rounded-full bg-emerald-700 px-6 py-3.5 text-sm font-bold text-white shadow-sm transition-all hover:bg-emerald-800 hover:shadow-md disabled:opacity-50"
-                                >
-                                    <Plus className="h-4 w-4" />
-                                    Buat / Buka Negotiation
-                                </button>
-                            </form>
-                        ) : (
-                            <div className="text-xs italic text-slate-400">
-                                Tidak ada produk tersedia untuk sesi negosiasi.
-                            </div>
-                        )}
+                    {/* Search box */}
+                    <div className="relative w-full sm:w-72">
+                        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-400" />
+                        <input
+                            type="text"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            placeholder="Cari pesanan, supplier, kode..."
+                            className="w-full pl-10 pr-4 py-2 bg-white border border-neutral-200/80 rounded-xl text-xs outline-none focus:border-[#2e5a36] focus:ring-1 focus:ring-[#2e5a36]"
+                        />
                     </div>
                 </div>
 
-                {/* Existing Active Negotiations List */}
-                <div>
-                    <h2 className="mb-4 text-lg font-bold text-slate-900">Daftar Sesi Negosiasi Anda</h2>
+                {/* Main Card Container */}
+                <div className="rounded-2xl border border-neutral-200/60 bg-white p-6 shadow-xs">
+                    {/* Filter Tabs */}
+                    <div className="flex gap-2 overflow-x-auto pb-4 mb-6 border-b border-neutral-100">
+                        {['Semua', 'Menunggu', 'Negosiasi', 'Pembayaran', 'Pickup', 'Selesai'].map((tab) => (
+                            <button
+                                key={tab}
+                                onClick={() => setOrderTab(tab)}
+                                className={`px-4 py-2 rounded-full text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+                                    orderTab === tab
+                                        ? 'bg-[#2e5a36] text-white shadow-xs'
+                                        : 'bg-white text-neutral-500 hover:bg-neutral-50 border border-neutral-100'
+                                }`}
+                            >
+                                {tab}
+                            </button>
+                        ))}
+                    </div>
 
-                    {negotiations && negotiations.length > 0 ? (
-                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                            {negotiations.map((item) => (
-                                <Link
-                                    key={item.id}
-                                    href={route('negotiations.show', item.id)}
-                                    className="group flex flex-col justify-between rounded-2xl border border-slate-200/80 bg-white p-5 shadow-2xs transition-all hover:border-emerald-300 hover:shadow-md"
+                    {/* Transaction List */}
+                    {filteredTransactions.length > 0 ? (
+                        <div className="space-y-6">
+                            {filteredTransactions.map((order) => (
+                                <div
+                                    key={order.id}
+                                    className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-6 border-b border-neutral-100 last:border-0 last:pb-0"
                                 >
-                                    <div>
-                                        <div className="mb-2 flex items-center justify-between">
-                                            <span className="text-xs font-semibold text-slate-400">
-                                                ID Negosiasi: #{item.id}
-                                            </span>
-                                            <span
-                                                className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${
-                                                    item.status === 'agreed'
-                                                        ? 'bg-emerald-100 text-emerald-800'
-                                                        : 'bg-amber-100 text-amber-800'
-                                                }`}
-                                            >
-                                                {item.status.toUpperCase()}
+                                    {/* Left Product details */}
+                                    <div className="flex gap-4 min-w-[260px]">
+                                        <div className="h-12 w-12 rounded-xl bg-[#f0f7f1] text-[#2e5a36] flex items-center justify-center font-bold text-sm flex-shrink-0">
+                                            {order.name.charAt(0)}
+                                        </div>
+                                        <div>
+                                            <div className="flex items-center gap-2">
+                                                <h4 className="text-sm font-bold text-neutral-900">{order.name}</h4>
+                                                {order.nego && (
+                                                    <span className="bg-amber-50 text-amber-700 px-2 py-0.5 rounded text-[10px] font-bold">
+                                                        Nego
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <p className="text-xs text-neutral-400 mt-0.5">
+                                                {order.seller} • {order.qty}
+                                            </p>
+                                            <span className="text-[10px] bg-neutral-100 text-neutral-500 font-semibold px-2 py-0.5 rounded mt-2 inline-block">
+                                                {order.code}
                                             </span>
                                         </div>
-                                        <h3 className="text-base font-bold text-slate-900 group-hover:text-emerald-700">
-                                            {item.product?.title || 'Produk Limba Pangan'}
-                                        </h3>
-                                        <p className="mt-1 text-xs text-slate-500">
-                                            Mitra: {item.seller?.name || item.buyer?.name}
-                                        </p>
                                     </div>
-                                    <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3 text-xs text-slate-500">
-                                        <span>Buka Chat Room</span>
-                                        <ArrowRight className="h-4 w-4 text-emerald-600 transition-transform group-hover:translate-x-1" />
+
+                                    {/* Progress Step Bar */}
+                                    <div className="flex items-center gap-2 my-2 lg:my-0">
+                                        {[
+                                            { label: 'Menunggu', idx: 0 },
+                                            { label: 'Negosiasi', idx: 1 },
+                                            { label: 'Pembayaran', idx: 2 },
+                                            { label: 'Pickup', idx: 3 },
+                                            { label: 'Selesai', idx: 4 },
+                                        ].map((stepObj) => {
+                                            const isDone = order.step >= stepObj.idx;
+                                            return (
+                                                <div key={stepObj.idx} className="flex items-center">
+                                                    <div
+                                                        className={`h-2.5 w-2.5 rounded-full ${
+                                                            isDone ? 'bg-[#2e5a36]' : 'bg-neutral-200'
+                                                        }`}
+                                                        title={stepObj.label}
+                                                    />
+                                                    {stepObj.idx < 4 && (
+                                                        <div
+                                                            className={`h-[2px] w-6 sm:w-10 ${
+                                                                order.step > stepObj.idx
+                                                                    ? 'bg-[#2e5a36]'
+                                                                    : 'bg-neutral-200'
+                                                            }`}
+                                                        />
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+                                        <span className="text-xs font-bold text-neutral-700 ml-2">
+                                            {order.status}
+                                        </span>
                                     </div>
-                                </Link>
+
+                                    {/* Price & Action */}
+                                    <div className="flex items-center justify-between lg:justify-end gap-4 text-right">
+                                        <div>
+                                            <span className="text-sm font-extrabold text-neutral-950 block">
+                                                {order.price}
+                                            </span>
+                                            <span className="text-[10px] text-neutral-400 font-bold block">
+                                                {order.date}
+                                            </span>
+                                        </div>
+
+                                        <div className="flex flex-col gap-2 items-end">
+                                            {isSeller ? (
+                                                <Link
+                                                    href={`/negotiations/${order.negotiation_id}`}
+                                                    className="border border-neutral-200 text-neutral-700 bg-white hover:bg-neutral-50 px-4 py-2.5 rounded-xl text-xs font-bold shadow-xs transition-all inline-flex items-center gap-1.5 cursor-pointer"
+                                                >
+                                                    Lihat Chat
+                                                    <ArrowRight className="h-3.5 w-3.5" />
+                                                </Link>
+                                            ) : (
+                                                <>
+                                                    {order.button ? (
+                                                        <Link
+                                                            href={order.action_url}
+                                                            className={`px-4 py-2.5 rounded-xl text-xs font-bold shadow-xs transition-all inline-flex items-center gap-1.5 cursor-pointer ${
+                                                                order.button.includes('Bayar')
+                                                                    ? 'bg-[#2e5a36] text-white hover:bg-[#234529]'
+                                                                    : 'border border-neutral-200 text-neutral-700 bg-white hover:bg-neutral-50'
+                                                            }`}
+                                                        >
+                                                            {order.button}
+                                                            <ArrowRight className="h-3.5 w-3.5" />
+                                                        </Link>
+                                                    ) : (
+                                                        <Link
+                                                            href={order.action_url}
+                                                            className="border border-neutral-200 bg-white text-neutral-600 hover:bg-neutral-50 px-4 py-2.5 rounded-xl text-xs font-bold"
+                                                        >
+                                                            Detail
+                                                        </Link>
+                                                    )}
+
+                                                    {order.status === 'Pickup' && order.complete_url && (
+                                                        <button
+                                                            onClick={() => handleCompleteOrder(order.complete_url!)}
+                                                            className="px-4 py-2 rounded-xl text-xs font-bold bg-[#2e5a36] text-white hover:bg-[#234529] transition-all cursor-pointer shadow-xs inline-flex items-center gap-1.5"
+                                                        >
+                                                            <CheckCircle2 className="h-3.5 w-3.5" />
+                                                            Selesai
+                                                        </button>
+                                                    )}
+                                                </>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
                             ))}
                         </div>
                     ) : (
-                        <div className="rounded-2xl border border-dashed border-slate-300 p-8 text-center text-slate-500">
-                            <MessageSquare className="mx-auto mb-2 h-8 w-8 text-slate-400" />
-                            <p className="text-sm font-medium">Belum ada sesi negosiasi aktif.</p>
-                            <p className="text-xs text-slate-400">
-                                Klik tombol &quot;Buat / Buka Negotiation&quot; di atas untuk memulai.
+                        <div className="py-16 text-center text-neutral-400 flex flex-col items-center justify-center">
+                            <ShoppingBag className="h-10 w-10 text-neutral-300 mb-3" />
+                            <p className="text-sm font-bold text-neutral-600">Tidak ada transaksi ditemukan.</p>
+                            <p className="text-xs text-neutral-400 mt-1">
+                                Belum ada pesanan dengan status "{orderTab}" saat ini.
                             </p>
+                            <Link
+                                href="/marketplace"
+                                className="mt-4 bg-[#2e5a36] text-white text-xs font-bold px-4 py-2 rounded-xl hover:bg-[#234529] transition-colors"
+                            >
+                                Jelajahi Marketplace
+                            </Link>
                         </div>
                     )}
                 </div>
-            </main>
-        </div>
+            </div>
+        </AppLayout>
     );
 }

@@ -13,15 +13,13 @@ use Inertia\Response;
 class NegotiationController extends Controller
 {
     /**
-     * Display a list of user negotiations & prototype creation card.
+     * Display a list of user transactions ("Pesanan Saya") full page.
      */
     public function index(): Response
     {
         $userId = Auth::id();
 
-        $negotiations = Negotiation::with(['product.seller', 'buyer', 'seller', 'messages' => function ($q) {
-            $q->latest('created_at')->limit(1);
-        }])
+        $negotiations = Negotiation::with(['product.seller', 'product.images', 'buyer', 'seller', 'order.invoice'])
             ->where(function ($query) use ($userId) {
                 $query->where('buyer_id', $userId)
                     ->orWhere('seller_id', $userId);
@@ -29,13 +27,86 @@ class NegotiationController extends Controller
             ->latest('updated_at')
             ->get();
 
-        // Get a sample product for prototype testing if available
-        $sampleProduct = Product::with('seller')->where('seller_id', '!=', $userId)->first()
-            ?? Product::with('seller')->first();
+        $transactions = $negotiations->map(function ($item) {
+            $product = $item->product;
+            $order = $item->order;
+
+            $priceVal = $item->agreed_price ?? ($product->reference_price ?? 0);
+            $qtyVal = $item->agreed_quantity ?? ($product->minimum_order ?? 1);
+            $unitStr = $product->unit ?? 'kg';
+
+            $priceFormatted = 'Rp '.number_format($priceVal * $qtyVal, 0, ',', '.');
+            $dateFormatted = $item->updated_at ? $item->updated_at->format('d M Y') : now()->format('d M Y');
+
+            $status = 'Menunggu';
+            $step = 0;
+            $button = null;
+            $actionUrl = route('negotiations.show', $item->id);
+            $code = 'REG-NEGO-'.str_pad($item->id, 4, '0', STR_PAD_LEFT);
+
+            if ($order) {
+                $code = $order->order_number ?? $code;
+                if ($order->status === 'waiting_payment') {
+                    $status = 'Pembayaran';
+                    $step = 2;
+                    $button = 'Bayar Sekarang';
+                    $actionUrl = route('orders.payment', $order->id);
+                } elseif ($order->status === 'paid') {
+                    $status = 'Pickup';
+                    $step = 3;
+                    $button = $order->invoice ? 'Lihat Invoice' : 'Detail';
+                    $actionUrl = $order->invoice ? route('invoices.show', $order->invoice->id) : route('negotiations.show', $item->id);
+                } elseif ($order->status === 'completed') {
+                    $status = 'Selesai';
+                    $step = 4;
+                    $button = 'Beri Ulasan';
+                    $actionUrl = route('negotiations.show', $item->id);
+                } elseif ($order->status === 'cancelled') {
+                    $status = 'Batal';
+                    $step = 0;
+                    $button = null;
+                    $actionUrl = route('negotiations.show', $item->id);
+                }
+            } else {
+                if ($item->status === 'agreed') {
+                    $status = 'Pembayaran';
+                    $step = 2;
+                    $button = 'Bayar Sekarang';
+                    $actionUrl = route('negotiations.checkout', $item->id);
+                } elseif ($item->status === 'negotiating') {
+                    $status = 'Negosiasi';
+                    $step = 1;
+                    $button = 'Lihat Chat';
+                    $actionUrl = route('negotiations.show', $item->id);
+                } elseif ($item->status === 'pending') {
+                    $status = 'Menunggu';
+                    $step = 0;
+                    $button = 'Lihat Chat';
+                    $actionUrl = route('negotiations.show', $item->id);
+                }
+            }
+
+            return [
+                'id' => $item->id,
+                'negotiation_id' => $item->id,
+                'order_id' => $order ? $order->id : null,
+                'code' => $code,
+                'name' => $product->title ?? 'Produk Limbah Pangan',
+                'seller' => $item->seller->name ?? 'Supplier',
+                'qty' => $qtyVal.' '.$unitStr,
+                'price' => $priceFormatted,
+                'date' => $dateFormatted,
+                'status' => $status,
+                'step' => $step,
+                'button' => $button,
+                'action_url' => $actionUrl,
+                'complete_url' => ($order && $order->status === 'paid') ? route('orders.complete', $order->id) : null,
+                'nego' => true,
+            ];
+        });
 
         return Inertia::render('negotiations/index', [
-            'negotiations' => $negotiations,
-            'sampleProduct' => $sampleProduct,
+            'transactions' => $transactions,
         ]);
     }
 
@@ -127,6 +198,32 @@ class NegotiationController extends Controller
             'seller' => $negotiation->seller,
             'chatMessages' => $negotiation->messages,
             'activeNegotiations' => $activeNegotiations,
+        ]);
+    }
+
+    /**
+     * Display the buyer's order history page.
+     */
+    public function buyerOrders(Request $request): Response
+    {
+        $userId = Auth::id();
+
+        $negotiations = Negotiation::with([
+            'product.seller',
+            'product.images',
+            'buyer',
+            'seller',
+            'order.invoice',
+            'messages' => function ($q) {
+                $q->latest('created_at')->limit(1);
+            },
+        ])
+            ->where('buyer_id', $userId)
+            ->latest('updated_at')
+            ->get();
+
+        return Inertia::render('negotiations/orders', [
+            'negotiations' => $negotiations,
         ]);
     }
 }

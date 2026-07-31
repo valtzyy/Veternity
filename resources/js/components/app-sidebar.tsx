@@ -21,7 +21,7 @@ const footerNavItems: NavItem[] = [
 ];
 
 export function AppSidebar() {
-    const { auth } = usePage<any>().props;
+    const { auth, unread_negotiations_count, active_orders_count } = usePage<any>().props;
     const userRole = auth?.user?.role;
     const { toggleSidebar } = useSidebar();
 
@@ -61,11 +61,15 @@ export function AppSidebar() {
                 title: 'Pesanan',
                 url: '/seller/orders',
                 icon: BookOpen,
+                badge: active_orders_count,
+                badgeColor: 'bg-blue-600',
             },
             {
                 title: 'Negosiasi',
                 url: '/negotiations',
-                icon: Users,
+                icon: MessageSquare,
+                badge: unread_negotiations_count,
+                badgeColor: 'bg-amber-50', // Yellow badge
             },
             {
                 title: 'Analitik',
@@ -89,11 +93,8 @@ export function AppSidebar() {
                 title: 'Pesanan Saya',
                 url: '/buyer/orders',
                 icon: ClipboardCheck,
-            },
-            {
-                title: 'Negosiasi',
-                url: '/negotiations',
-                icon: MessageSquare,
+                badge: active_orders_count,
+                badgeColor: 'bg-blue-600',
             },
             {
                 title: 'Favorit',

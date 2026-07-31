@@ -129,4 +129,12 @@ class Product extends Model
             get: fn () => 'Rp '.number_format($this->reference_price, 0, ',', '.')
         );
     }
+
+    /**
+     * Relationship: Product is favorited by many users.
+     */
+    public function favoritedBy()
+    {
+        return $this->belongsToMany(User::class, 'favorites')->withTimestamps();
+    }
 }

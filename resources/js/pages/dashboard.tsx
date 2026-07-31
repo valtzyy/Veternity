@@ -34,15 +34,76 @@ interface RecentOrder {
     status_color: 'success' | 'blue' | 'warning' | 'secondary';
 }
 
+interface TransactionItem {
+    id: number;
+    negotiation_id: number;
+    order_id?: number | null;
+    code: string;
+    name: string;
+    seller: string;
+    qty: string;
+    price: string;
+    date: string;
+    status: 'Menunggu' | 'Negosiasi' | 'Pembayaran' | 'Pickup' | 'Selesai' | 'Batal';
+    step: number;
+    button: string | null;
+    action_url: string;
+    nego?: boolean;
+}
+
+interface FavoriteProduct {
+    id: number;
+    title: string;
+    reference_price: string;
+    unit: string;
+    seller: { name: string };
+    images: { image_url: string }[];
+}
+
+interface BuyerStats {
+    total_spend: number;
+    active_orders: number;
+    action_required_orders: number;
+    active_negotiations: number;
+    counter_offers: number;
+    co2_reduced: number;
+    monthly_expenses: { month: string; amount: number }[];
+    favorites: FavoriteProduct[];
+}
+
 interface DashboardProps {
     stats?: Stats;
     recentOrders?: RecentOrder[];
+    transactions?: TransactionItem[];
+    buyerStats?: BuyerStats;
 }
 
-export default function Dashboard({ stats, recentOrders }: DashboardProps) {
+export default function Dashboard({ stats, recentOrders, transactions = [], buyerStats }: DashboardProps) {
     const { auth } = usePage<any>().props;
     const isSeller = auth?.user?.role === 'seller';
     const [orderTab, setOrderTab] = useState('Semua');
+
+    const previewTransactions = transactions
+        .filter((t) => orderTab === 'Semua' || t.status === orderTab)
+        .slice(0, 4);
+
+    const bStats = buyerStats || {
+        total_spend: 0,
+        active_orders: 0,
+        action_required_orders: 0,
+        active_negotiations: 0,
+        counter_offers: 0,
+        co2_reduced: 0,
+        monthly_expenses: [
+            { month: 'Feb', amount: 0 },
+            { month: 'Mar', amount: 0 },
+            { month: 'Apr', amount: 0 },
+            { month: 'Mei', amount: 0 },
+            { month: 'Jun', amount: 0 },
+            { month: 'Jul', amount: 0 },
+        ],
+        favorites: []
+    };
 
     if (!isSeller) {
         return (
@@ -56,7 +117,7 @@ export default function Dashboard({ stats, recentOrders }: DashboardProps) {
                                 Selamat datang, {auth?.user?.name || 'Sari'}! 👋
                             </h1>
                             <p className="text-sm text-neutral-500 mt-1">
-                                Kamis, 17 Juli 2025 — Berikut ringkasan aktivitas pembelian Anda.
+                                {new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })} — Berikut ringkasan aktivitas pembelian Anda.
                             </p>
                         </div>
                         <span className="bg-[#e6f4e9] text-[#2e5a36] px-4 py-2 rounded-full text-xs font-bold shadow-xs flex items-center gap-1.5 border border-[#2e5a36]/10">
@@ -75,22 +136,29 @@ export default function Dashboard({ stats, recentOrders }: DashboardProps) {
                                 </div>
                             </div>
                             <div className="mt-4">
-                                <h3 className="text-2xl font-bold text-neutral-900">Rp 5,9 Jt</h3>
-                                <p className="mt-1 text-xs text-neutral-400">Jul 2025</p>
+                                <h3 className="text-2xl font-bold text-neutral-900">
+                                    {bStats.total_spend >= 1000000 
+                                        ? `Rp ${(bStats.total_spend / 1000000).toFixed(1)} Jt` 
+                                        : `Rp ${bStats.total_spend.toLocaleString('id-ID')}`
+                                    }
+                                </h3>
+                                <p className="mt-1 text-xs text-neutral-400">
+                                    {new Date().toLocaleDateString('id-ID', { month: 'short', year: 'numeric' })}
+                                </p>
                             </div>
                         </div>
 
                         {/* active orders */}
                         <div className="rounded-2xl border border-neutral-200/60 bg-white p-5 shadow-xs">
                             <div className="flex items-center justify-between">
-                                <span className="text-xs font-semibold text-neutral-500 uppercase tracking-wider">Pesanan Aktif</span>
+                                <span className="text-xs font-semibold text-neutral-500 uppercase tracking-wider">Pesanan Pembayaran</span>
                                 <div className="rounded-xl bg-blue-50 text-blue-700 p-2.5">
                                     <ShoppingBag className="h-5 w-5" />
                                 </div>
                             </div>
                             <div className="mt-4">
-                                <h3 className="text-2xl font-bold text-neutral-900">4</h3>
-                                <p className="mt-1 text-xs text-blue-600 font-bold">2 perlu tindakan</p>
+                                <h3 className="text-2xl font-bold text-neutral-900">{bStats.active_orders}</h3>
+                                <p className="mt-1 text-xs text-blue-600 font-bold">{bStats.action_required_orders} perlu tindakan</p>
                             </div>
                         </div>
 
@@ -103,8 +171,8 @@ export default function Dashboard({ stats, recentOrders }: DashboardProps) {
                                 </div>
                             </div>
                             <div className="mt-4">
-                                <h3 className="text-2xl font-bold text-neutral-900">2</h3>
-                                <p className="mt-1 text-xs text-amber-600 font-bold">1 counter offer</p>
+                                <h3 className="text-2xl font-bold text-neutral-900">{bStats.active_negotiations}</h3>
+                                <p className="mt-1 text-xs text-amber-600 font-bold">{bStats.counter_offers} counter offer</p>
                             </div>
                         </div>
 
@@ -117,7 +185,7 @@ export default function Dashboard({ stats, recentOrders }: DashboardProps) {
                                 </div>
                             </div>
                             <div className="mt-4">
-                                <h3 className="text-2xl font-bold text-neutral-900">1.4 ton</h3>
+                                <h3 className="text-2xl font-bold text-neutral-900">{bStats.co2_reduced} ton</h3>
                                 <p className="mt-1 text-xs text-emerald-700 font-bold">bulan ini</p>
                             </div>
                         </div>
@@ -129,28 +197,33 @@ export default function Dashboard({ stats, recentOrders }: DashboardProps) {
                             <div className="flex justify-between items-center mb-6">
                                 <div>
                                     <h2 className="text-base font-bold text-neutral-900">Riwayat Pengeluaran</h2>
-                                    <p className="text-xs text-neutral-500">Februari — Juli 2025</p>
+                                    <p className="text-xs text-neutral-500">6 Bulan Terakhir</p>
                                 </div>
                                 <span className="bg-[#e6f4e9] text-[#2e5a36] text-xs font-bold px-3 py-1 rounded-full">
-                                    Total Rp 8,95 Jt
+                                    Total {bStats.total_spend >= 1000000 
+                                        ? `Rp ${(bStats.total_spend / 1000000).toFixed(2)} Jt` 
+                                        : `Rp ${bStats.total_spend.toLocaleString('id-ID')}`
+                                    }
                                 </span>
                             </div>
                             <div className="flex items-end justify-between h-44 pt-6 border-b border-neutral-100">
-                                {[
-                                    { month: 'Feb', val: 'h-[30%]' },
-                                    { month: 'Mar', val: 'h-[40%]' },
-                                    { month: 'Apr', val: 'h-[25%]' },
-                                    { month: 'Mei', val: 'h-[55%]' },
-                                    { month: 'Jun', val: 'h-[70%]' },
-                                    { month: 'Jul', val: 'h-[90%]' },
-                                ].map((bar) => (
-                                    <div key={bar.month} className="flex flex-col items-center gap-2 w-full group">
-                                        <div className="w-8/12 bg-neutral-100 group-hover:bg-[#2e5a36]/90 rounded-t-lg transition-all duration-300 relative flex justify-center h-28">
-                                            <div className={`w-full bg-[#2e5a36] rounded-t-lg absolute bottom-0 ${bar.val}`} />
-                                        </div>
-                                        <span className="text-xs text-neutral-500 pb-2">{bar.month}</span>
-                                    </div>
-                                ))}
+                                {(() => {
+                                    const maxExpense = Math.max(...bStats.monthly_expenses.map(e => e.amount), 1);
+                                    return bStats.monthly_expenses.map((bar) => {
+                                        const pct = Math.round((bar.amount / maxExpense) * 100);
+                                        return (
+                                            <div key={bar.month} className="flex flex-col items-center gap-2 w-full group">
+                                                <div className="w-8/12 bg-neutral-100 group-hover:bg-[#2e5a36]/90 rounded-t-lg transition-all duration-300 relative flex justify-center h-28">
+                                                    <div 
+                                                        className="w-full bg-[#2e5a36] rounded-t-lg absolute bottom-0 transition-all duration-500" 
+                                                        style={{ height: `${pct}%` }}
+                                                    />
+                                                </div>
+                                                <span className="text-xs text-neutral-500 pb-2">{bar.month}</span>
+                                            </div>
+                                        );
+                                    });
+                                })()}
                             </div>
                         </div>
 
@@ -158,29 +231,46 @@ export default function Dashboard({ stats, recentOrders }: DashboardProps) {
                         <div className="rounded-2xl border border-neutral-200/60 bg-white p-6 shadow-xs flex flex-col">
                             <div className="flex justify-between items-center mb-6">
                                 <h2 className="text-base font-bold text-neutral-900">Produk Favorit</h2>
-                                <button className="text-xs font-semibold text-[#2e5a36] hover:text-[#234529]">Lihat semua</button>
+                                <Link href={route('buyer.favorites')} className="text-xs font-semibold text-[#2e5a36] hover:text-[#234529]">Lihat semua</Link>
                             </div>
                             <div className="space-y-4 flex-1">
-                                {[
-                                    { name: 'Ampas Tahu Premium', seller: 'CV. Sari Murni', price: 'Rp 850/kg' },
-                                    { name: 'Ampas Kopi Arabika', seller: 'Kopiku Nusantara', price: 'Rp 1.200/kg' },
-                                    { name: 'Dedak Padi Halus', seller: 'PT. Agri Mandiri', price: 'Rp 300/kg' },
-                                ].map((fav, i) => (
-                                    <div key={i} className="flex items-center justify-between p-2 rounded-xl border border-neutral-50 hover:bg-neutral-50/50 transition-colors">
-                                        <div className="flex items-center gap-2">
-                                            <div className="h-10 w-10 rounded-lg bg-[#f0f7f1] text-[#2e5a36] flex items-center justify-center font-bold text-xs">
-                                                {fav.name.charAt(0)}
-                                            </div>
-                                            <div>
-                                                <h4 className="text-sm font-bold text-neutral-900">{fav.name}</h4>
-                                                <p className="text-xs text-neutral-400">{fav.seller}</p>
-                                            </div>
-                                        </div>
-                                        <div className="text-right">
-                                            <span className="text-sm font-extrabold text-[#2e5a36]">{fav.price}</span>
-                                        </div>
+                                {bStats.favorites.length === 0 ? (
+                                    <div className="py-8 text-center text-xs text-neutral-400">
+                                        Belum ada produk favorit.
                                     </div>
-                                ))}
+                                ) : (
+                                    bStats.favorites.map((fav) => {
+                                        const primaryImg = fav.images?.[0]?.image_url;
+                                        return (
+                                            <Link 
+                                                href={route('products.show', fav.id)}
+                                                key={fav.id} 
+                                                className="flex items-center justify-between p-2 rounded-xl border border-neutral-50 hover:bg-neutral-50/50 transition-colors cursor-pointer"
+                                            >
+                                                <div className="flex items-center gap-2">
+                                                    {primaryImg ? (
+                                                        <div className="h-10 w-10 rounded-lg overflow-hidden bg-neutral-100 flex-shrink-0">
+                                                            <img src={primaryImg} alt={fav.title} className="w-full h-full object-cover" />
+                                                        </div>
+                                                    ) : (
+                                                        <div className="h-10 w-10 rounded-lg bg-[#f0f7f1] text-[#2e5a36] flex items-center justify-center font-bold text-xs flex-shrink-0">
+                                                            {fav.title.charAt(0)}
+                                                        </div>
+                                                    )}
+                                                    <div>
+                                                        <h4 className="text-sm font-bold text-neutral-900 capitalize truncate max-w-[120px]">{fav.title}</h4>
+                                                        <p className="text-xs text-neutral-400 truncate max-w-[120px]">{fav.seller.name}</p>
+                                                    </div>
+                                                </div>
+                                                <div className="text-right">
+                                                    <span className="text-sm font-extrabold text-[#2e5a36]">
+                                                        Rp {Number(fav.reference_price).toLocaleString('id-ID')}/{fav.unit}
+                                                    </span>
+                                                </div>
+                                            </Link>
+                                        );
+                                    })
+                                )}
                             </div>
                             <Link href={route('marketplace')} className="mt-4 w-full bg-[#f0f7f1] hover:bg-[#e6f4e9] text-[#2e5a36] text-center py-3 rounded-xl font-bold text-xs transition-colors flex items-center justify-center gap-1.5">
                                 + Temukan Produk Baru
@@ -188,11 +278,13 @@ export default function Dashboard({ stats, recentOrders }: DashboardProps) {
                         </div>
                     </div>
 
-                    {/* Pesanan Saya */}
+                    {/* Pesanan Saya Preview */}
                     <div className="rounded-2xl border border-neutral-200/60 bg-white p-6 shadow-xs">
                         <div className="flex justify-between items-center mb-6">
                             <h2 className="text-base font-bold text-neutral-900">Pesanan Saya</h2>
-                            <button className="text-xs font-semibold text-[#2e5a36] hover:text-[#234529]">Lihat semua</button>
+                            <Link href={route('negotiations.index')} className="text-xs font-semibold text-[#2e5a36] hover:text-[#234529] cursor-pointer">
+                                Lihat semua &rarr;
+                            </Link>
                         </div>
 
                         {/* Tabs */}
@@ -201,10 +293,10 @@ export default function Dashboard({ stats, recentOrders }: DashboardProps) {
                                 <button
                                     key={tab}
                                     onClick={() => setOrderTab(tab)}
-                                    className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${
+                                    className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer ${
                                         orderTab === tab 
                                         ? 'bg-[#2e5a36] text-white' 
-                                        : 'bg-white text-neutral-500 hover:bg-neutral-50'
+                                        : 'bg-white text-neutral-500 hover:bg-neutral-50 border border-neutral-100'
                                     }`}
                                 >
                                     {tab}
@@ -213,147 +305,102 @@ export default function Dashboard({ stats, recentOrders }: DashboardProps) {
                         </div>
 
                         {/* Order timeline list */}
-                        <div className="space-y-6">
-                            {[
-                                { 
-                                    name: 'Ampas Tahu Premium', seller: 'CV. Sari Murni', qty: '500 kg', price: 'Rp 418.150', date: '19 Jul 2025', 
-                                    status: 'Selesai', step: 4, code: 'FDC-2025-0147', button: 'Beri Ulasan', nego: true 
-                                },
-                                { 
-                                    name: 'Ampas Kopi Arabika', seller: 'Kopiku Nusantara', qty: '200 kg', price: 'Rp 246.640', date: '16 Jul 2025', 
-                                    status: 'Pickup', step: 3, code: 'EOC-2025-0531', nego: false 
-                                },
-                                { 
-                                    name: 'Dedak Padi Halus', seller: 'PT. Agri Mandiri', qty: '1 ton', price: 'Rp 283.080', date: '12 Jul 2025', 
-                                    status: 'Pembayaran', step: 2, code: 'ECO-2025-0810', button: 'Bayar Sekarang', nego: true 
-                                },
-                                { 
-                                    name: 'Kulit Jagung Kering', seller: 'UD. Berkah Tani', qty: '800 kg', price: 'Rp 309.760', date: '10 Jul 2025', 
-                                    status: 'Negosiasi', step: 1, code: 'ECO-2025-0894', button: 'Lihat Chat', nego: true 
-                                },
-                                { 
-                                    name: 'Whey Susu Segar', seller: 'Peternakan Lestari Jaya', qty: '300 kg', price: 'Rp 338.600', date: '8 Jul 2025', 
-                                    status: 'Menunggu', step: 0, code: 'ECO-2025-0561', nego: false 
-                                }
-                            ].map((order, idx) => (
-                                <div key={idx} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-neutral-100 last:border-0 last:pb-0">
-                                    <div className="flex gap-4">
-                                        <div className="h-12 w-12 rounded-xl bg-[#f0f7f1] text-[#2e5a36] flex items-center justify-center font-bold text-xs flex-shrink-0">
-                                            {order.name.charAt(0)}
-                                        </div>
-                                        <div>
-                                            <div className="flex items-center gap-2">
-                                                <h4 className="text-sm font-bold text-neutral-900">{order.name}</h4>
-                                                {order.nego && <span className="bg-amber-50 text-amber-700 px-2 py-0.5 rounded text-[10px] font-bold">Nego</span>}
+                        {previewTransactions.length > 0 ? (
+                            <div className="space-y-6">
+                                {previewTransactions.map((order) => (
+                                    <div key={order.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-neutral-100 last:border-0 last:pb-0">
+                                        <div className="flex gap-4">
+                                            <div className="h-12 w-12 rounded-xl bg-[#f0f7f1] text-[#2e5a36] flex items-center justify-center font-bold text-xs flex-shrink-0">
+                                                {order.name.charAt(0)}
                                             </div>
-                                            <p className="text-xs text-neutral-400 mt-0.5">{order.seller} • {order.qty}</p>
-                                            <span className="text-[10px] bg-neutral-100 text-neutral-500 font-semibold px-2 py-0.5 rounded mt-2 inline-block">{order.code}</span>
-                                        </div>
-                                    </div>
-
-                                    {/* Progress Step bar in center */}
-                                    <div className="flex items-center gap-2 my-2 sm:my-0">
-                                        {[0, 1, 2, 3, 4].map((stepIdx) => {
-                                            const isDone = order.step >= stepIdx;
-                                            return (
-                                                <div key={stepIdx} className="flex items-center">
-                                                    <div className={`h-2.5 w-2.5 rounded-full ${isDone ? 'bg-[#2e5a36]' : 'bg-neutral-200'}`} />
-                                                    {stepIdx < 4 && <div className={`h-[2px] w-6 ${order.step > stepIdx ? 'bg-[#2e5a36]' : 'bg-neutral-200'}`} />}
+                                            <div>
+                                                <div className="flex items-center gap-2">
+                                                    <h4 className="text-sm font-bold text-neutral-900">{order.name}</h4>
+                                                    {order.nego && <span className="bg-amber-50 text-amber-700 px-2 py-0.5 rounded text-[10px] font-bold">Nego</span>}
                                                 </div>
-                                            );
-                                        })}
-                                        <span className="text-xs font-bold text-neutral-600 ml-2">{order.status}</span>
-                                    </div>
-
-                                    {/* Action button */}
-                                    <div className="flex items-center gap-3 text-right">
-                                        <div className="mr-4">
-                                            <span className="text-sm font-extrabold text-neutral-950 block">{order.price}</span>
-                                            <span className="text-[10px] text-neutral-400 font-bold">{order.date}</span>
+                                                <p className="text-xs text-neutral-400 mt-0.5">{order.seller} • {order.qty}</p>
+                                                <span className="text-[10px] bg-neutral-100 text-neutral-500 font-semibold px-2 py-0.5 rounded mt-2 inline-block">{order.code}</span>
+                                            </div>
                                         </div>
-                                        {order.button ? (
-                                            <button className={`px-4 py-2 rounded-xl text-xs font-bold shadow-xs transition-colors ${
-                                                order.button.includes('Bayar') 
-                                                ? 'bg-[#2e5a36] text-white hover:bg-[#234529]' 
-                                                : 'border border-neutral-200 text-neutral-700 bg-white hover:bg-neutral-50'
-                                            }`}>
-                                                {order.button}
-                                            </button>
-                                        ) : (
-                                            <button className="border border-neutral-200 bg-white text-neutral-600 hover:bg-neutral-50 px-4 py-2 rounded-xl text-xs font-bold">
-                                                Detail
-                                            </button>
-                                        )}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
 
-                    {/* Bottom grid (Recommendations and Active negotiations) */}
-                    <div className="grid gap-6 lg:grid-cols-3">
-                        {/* Recommendations */}
-                        <div className="lg:col-span-2 rounded-2xl border border-neutral-200/60 bg-white p-6 shadow-xs">
-                            <h2 className="text-base font-bold text-neutral-900 mb-6">Rekomendasi Untukmu</h2>
-                            <div className="grid sm:grid-cols-2 gap-4">
-                                {[
-                                    { name: 'Ampas Tahu Premium', location: 'Bogor, Jawa Barat', price: 'Rp 850/kg', stock: '2 ton' },
-                                    { name: 'Kulit Jagung Kering', location: 'Malang, Jawa Timur', price: 'Rp 400/kg', stock: '800 kg' },
-                                    { name: 'Ampas Kopi Arabika', location: 'Aceh, Sumatra', price: 'Rp 1.200/kg', stock: '500 kg' },
-                                    { name: 'Dedak Padi Halus', location: 'Karawang, Jawa Barat', price: 'Rp 300/kg', stock: '5 ton' },
-                                ].map((item, i) => (
-                                    <div key={i} className="flex items-center justify-between p-3 rounded-2xl border border-neutral-100 hover:shadow-xs transition-shadow">
-                                        <div>
-                                            <h4 className="text-sm font-bold text-neutral-900 capitalize">{item.name}</h4>
-                                            <p className="text-[10px] text-neutral-400 mt-0.5">{item.location} • {item.stock}</p>
-                                            <span className="text-xs font-bold text-[#2e5a36] mt-2 block">{item.price}</span>
+                                        {/* Progress Step bar in center */}
+                                        <div className="flex items-center gap-2 my-2 sm:my-0">
+                                            {[0, 1, 2, 3, 4].map((stepIdx) => {
+                                                const isDone = order.step >= stepIdx;
+                                                return (
+                                                    <div key={stepIdx} className="flex items-center">
+                                                        <div className={`h-2.5 w-2.5 rounded-full ${isDone ? 'bg-[#2e5a36]' : 'bg-neutral-200'}`} />
+                                                        {stepIdx < 4 && <div className={`h-[2px] w-6 ${order.step > stepIdx ? 'bg-[#2e5a36]' : 'bg-neutral-200'}`} />}
+                                                    </div>
+                                                );
+                                            })}
+                                            <span className="text-xs font-bold text-neutral-600 ml-2">{order.status}</span>
                                         </div>
-                                        <Link href={route('marketplace')} className="text-xs font-bold text-neutral-400 hover:text-[#2e5a36]">Detail</Link>
+
+                                        {/* Action button */}
+                                        <div className="flex items-center gap-3 text-right">
+                                            <div className="mr-4">
+                                                <span className="text-sm font-extrabold text-neutral-950 block">{order.price}</span>
+                                                <span className="text-[10px] text-neutral-400 font-bold">{order.date}</span>
+                                            </div>
+                                            {isSeller ? (
+                                                <Link
+                                                    href={`/negotiations/${order.negotiation_id}`}
+                                                    className="border border-neutral-200 text-neutral-700 bg-white hover:bg-neutral-50 px-4 py-2 rounded-xl text-xs font-bold shadow-xs transition-colors cursor-pointer"
+                                                >
+                                                    Lihat Chat
+                                                </Link>
+                                            ) : order.button ? (
+                                                <Link
+                                                    href={order.action_url}
+                                                    className={`px-4 py-2 rounded-xl text-xs font-bold shadow-xs transition-colors cursor-pointer ${
+                                                        order.button.includes('Bayar') 
+                                                        ? 'bg-[#2e5a36] text-white hover:bg-[#234529]' 
+                                                        : 'border border-neutral-200 text-neutral-700 bg-white hover:bg-neutral-50'
+                                                    }`}
+                                                >
+                                                    {order.button}
+                                                </Link>
+                                            ) : (
+                                                <Link
+                                                    href={order.action_url}
+                                                    className="border border-neutral-200 bg-white text-neutral-600 hover:bg-neutral-50 px-4 py-2 rounded-xl text-xs font-bold"
+                                                >
+                                                    Detail
+                                                </Link>
+                                            )}
+                                        </div>
                                     </div>
                                 ))}
                             </div>
-                        </div>
+                        ) : (
+                            <div className="py-8 text-center text-xs text-neutral-400">
+                                Belum ada transaksi aktif untuk kategori "{orderTab}".
+                            </div>
+                        )}
+                    </div>
 
-                        {/* Active Negotiations */}
-                        <div className="rounded-2xl border border-neutral-200/60 bg-white p-6 shadow-xs flex flex-col justify-between">
-                            <div>
-                                <div className="flex justify-between items-center mb-6">
-                                    <h2 className="text-base font-bold text-neutral-900">Negosiasi Aktif</h2>
-                                    <span className="bg-amber-50 text-amber-700 text-[10px] font-bold px-2 py-0.5 rounded">2 baru</span>
+                    {/* Recommendations Section */}
+                    <div className="rounded-2xl border border-neutral-200/60 bg-white p-6 shadow-xs">
+                        <h2 className="text-base font-bold text-neutral-900 mb-6">Rekomendasi Untukmu</h2>
+                        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                            {[
+                                { name: 'Ampas Tahu Premium', location: 'Bogor, Jawa Barat', price: 'Rp 850/kg', stock: '2 ton' },
+                                { name: 'Kulit Jagung Kering', location: 'Malang, Jawa Timur', price: 'Rp 400/kg', stock: '800 kg' },
+                                { name: 'Ampas Kopi Arabika', location: 'Aceh, Sumatra', price: 'Rp 1.200/kg', stock: '500 kg' },
+                                { name: 'Dedak Padi Halus', location: 'Karawang, Jawa Barat', price: 'Rp 300/kg', stock: '5 ton' },
+                            ].map((item, i) => (
+                                <div key={i} className="flex flex-col justify-between p-4 rounded-2xl border border-neutral-100 hover:shadow-xs transition-shadow">
+                                    <div>
+                                        <h4 className="text-sm font-bold text-neutral-900 capitalize">{item.name}</h4>
+                                        <p className="text-[10px] text-neutral-400 mt-0.5">{item.location} • {item.stock}</p>
+                                    </div>
+                                    <div className="flex items-center justify-between mt-3 pt-2 border-t border-neutral-50">
+                                        <span className="text-xs font-bold text-[#2e5a36]">{item.price}</span>
+                                        <Link href={route('marketplace')} className="text-xs font-bold text-neutral-400 hover:text-[#2e5a36]">Detail</Link>
+                                    </div>
                                 </div>
-                                <div className="space-y-4">
-                                    {[
-                                        { name: 'Kulit Jagung Kering', supplier: 'UD. Berkah Tani', status: 'Counter offer dari supplier', price: 'Rp 380/kg' },
-                                        { name: 'Whey Susu Segar', supplier: 'Peternakan Lestari Jaya', status: 'Menunggu respons Anda', price: 'Rp 1.050/kg' },
-                                    ].map((nego, i) => (
-                                        <div key={i} className="p-3 rounded-2xl border border-neutral-50 bg-[#fbfdfb] space-y-2">
-                                            <div className="flex justify-between items-start">
-                                                <div>
-                                                    <h4 className="text-xs font-bold text-neutral-900">{nego.name}</h4>
-                                                    <p className="text-[10px] text-neutral-400">{nego.supplier}</p>
-                                                </div>
-                                                <span className="text-xs font-extrabold text-[#2e5a36]">{nego.price}</span>
-                                            </div>
-                                            <div className="flex justify-between items-center pt-2 border-t border-neutral-100">
-                                                <span className="text-[10px] text-amber-600 font-bold">{nego.status}</span>
-                                                <button className="bg-[#2e5a36] hover:bg-[#234529] text-white font-bold text-[10px] px-3 py-1 rounded-lg transition-colors">
-                                                    Balas
-                                                </button>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                            <div className="grid grid-cols-2 gap-4 border-t border-neutral-100 pt-4 mt-4 text-center">
-                                <div className="bg-[#f0f7f1] rounded-xl p-2.5">
-                                    <span className="text-[10px] font-bold text-neutral-400 block">Hemat</span>
-                                    <span className="text-sm font-extrabold text-[#2e5a36]">Rp 240K</span>
-                                </div>
-                                <div className="bg-[#f0f7f1] rounded-xl p-2.5">
-                                    <span className="text-[10px] font-bold text-neutral-400 block">Rata-rata Diskon</span>
-                                    <span className="text-sm font-extrabold text-[#2e5a36]">7.4%</span>
-                                </div>
-                            </div>
+                            ))}
                         </div>
                     </div>
                 </div>
