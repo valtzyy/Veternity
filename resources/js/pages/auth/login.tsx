@@ -42,12 +42,12 @@ export default function Login({ status, canResetPassword }: LoginProps) {
                 <div className="absolute left-[20%] top-[40%] h-64 w-64 rounded-full bg-white/5 blur-2xl"></div>
 
                 {/* Logo */}
-                <div className="relative z-10 flex items-center gap-2">
+                <Link href="/" className="relative z-10 flex items-center gap-2 hover:opacity-85 transition-opacity">
                     <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10 backdrop-blur-sm">
                         <Leaf className="h-6 w-6 text-green-300" />
                     </div>
                     <span className="text-2xl font-bold tracking-tight">ReGuna</span>
-                </div>
+                </Link>
 
                 {/* Welcome Message */}
                 <div className="relative z-10 my-auto flex flex-col gap-6 max-w-md">
@@ -72,10 +72,10 @@ export default function Login({ status, canResetPassword }: LoginProps) {
             <div className="flex flex-1 flex-col justify-center bg-white px-6 py-12 dark:bg-[#0c0f0c] sm:px-12 lg:px-20 xl:px-24">
                 <div className="mx-auto w-full max-w-md">
                     {/* Logo Mobile Only */}
-                    <div className="mb-8 flex items-center gap-2 lg:hidden">
+                    <Link href="/" className="mb-8 flex items-center gap-2 lg:hidden hover:opacity-85 transition-opacity">
                         <Leaf className="h-8 w-8 text-[#2e5a36]" />
                         <span className="text-2xl font-bold text-[#2e5a36] dark:text-white">ReGuna</span>
-                    </div>
+                    </Link>
 
                     <div className="flex flex-col gap-2">
                         <h2 className="text-3xl font-extrabold tracking-tight text-gray-900 dark:text-white">

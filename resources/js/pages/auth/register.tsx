@@ -58,12 +58,12 @@ function LeftPanel() {
             <div className="absolute left-[20%] top-[40%] h-64 w-64 rounded-full bg-white/5 blur-2xl" />
 
             {/* Logo */}
-            <div className="relative z-10 flex items-center gap-2">
+            <Link href="/" className="relative z-10 flex items-center gap-2 hover:opacity-85 transition-opacity">
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10 backdrop-blur-sm">
                     <Leaf className="h-6 w-6 text-green-300" />
                 </div>
                 <span className="text-2xl font-bold tracking-tight">ReGuna</span>
-            </div>
+            </Link>
 
             {/* Main text */}
             <div className="relative z-10 my-auto flex flex-col gap-8 max-w-md">
@@ -186,10 +186,10 @@ export default function Register() {
             <div className="flex flex-1 flex-col justify-center bg-white px-6 py-12 sm:px-12 lg:px-20 xl:px-24">
                 <div className="mx-auto w-full max-w-lg">
                     {/* Mobile Logo */}
-                    <div className="mb-8 flex items-center gap-2 lg:hidden">
+                    <Link href="/" className="mb-8 flex items-center gap-2 lg:hidden hover:opacity-85 transition-opacity">
                         <Leaf className="h-8 w-8 text-[#2e5a36]" />
                         <span className="text-2xl font-bold text-[#2e5a36]">ReGuna</span>
-                    </div>
+                    </Link>
 
                     {/* Header */}
                     <div className="mb-6 flex flex-col gap-1">
