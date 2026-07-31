@@ -1,9 +1,8 @@
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
-import { Head, Link, router } from '@inertiajs/react';
-import { ShoppingBag, Search, Filter, MessageSquare, CreditCard, ChevronRight, CheckCircle2, ArrowRight } from 'lucide-react';
+import { Head, Link, router, usePage } from '@inertiajs/react';
+import { CheckCircle2, Clock, CreditCard, Handshake, MessageSquare, Search, ShoppingBag, Star, Truck, X } from 'lucide-react';
 import { useState } from 'react';
-import { usePage } from '@inertiajs/react';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -30,13 +29,23 @@ export interface Transaction {
     step: number;
     button: string | null;
     action_url: string;
+    detail_url?: string;
     complete_url?: string | null;
+    has_reviewed?: boolean;
     nego?: boolean;
 }
 
 interface IndexProps {
     transactions?: Transaction[];
 }
+
+const steps = [
+    { label: 'Menunggu', icon: Clock },
+    { label: 'Negosiasi', icon: Handshake },
+    { label: 'Pembayaran', icon: CreditCard },
+    { label: 'Pickup', icon: Truck },
+    { label: 'Selesai', icon: CheckCircle2 },
+];
 
 export default function NegotiationIndex({ transactions = [] }: IndexProps) {
     const { auth } = usePage<any>().props;
@@ -45,10 +54,67 @@ export default function NegotiationIndex({ transactions = [] }: IndexProps) {
     const [orderTab, setOrderTab] = useState('Semua');
     const [searchQuery, setSearchQuery] = useState('');
 
-    const handleCompleteOrder = (completeUrl: string) => {
-        if (window.confirm('Apakah Anda yakin pesanan ini telah selesai diterima?')) {
-            router.patch(completeUrl);
+    // Rating Modal state
+    const [isRatingModalOpen, setIsRatingModalOpen] = useState(false);
+    const [selectedRatingOrder, setSelectedRatingOrder] = useState<Transaction | null>(null);
+    const [rating, setRating] = useState(0);
+    const [hoverRating, setHoverRating] = useState(0);
+    const [reviewText, setReviewText] = useState('');
+    const [selectedTags, setSelectedTags] = useState<string[]>([]);
+    const [isSubmittingRating, setIsSubmittingRating] = useState(false);
+
+    const availableTags = [
+        'Produk sesuai deskripsi',
+        'Supplier responsif',
+        'Kualitas bagus',
+        'Pengiriman cepat',
+        'Harga wajar',
+        'Kemasan rapi',
+    ];
+
+    const toggleTag = (tag: string) => {
+        if (selectedTags.includes(tag)) {
+            setSelectedTags(selectedTags.filter((t) => t !== tag));
+        } else {
+            setSelectedTags([...selectedTags, tag]);
         }
+    };
+
+    const handleOpenRatingModal = (item: Transaction) => {
+        setSelectedRatingOrder(item);
+        setRating(0);
+        setReviewText('');
+        setSelectedTags([]);
+        setIsRatingModalOpen(true);
+    };
+
+    const handleCloseRatingModal = () => {
+        setIsRatingModalOpen(false);
+        setSelectedRatingOrder(null);
+    };
+
+    const handleSubmitRating = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (rating === 0 || !selectedRatingOrder?.order_id) return;
+
+        setIsSubmittingRating(true);
+        router.post(
+            route('orders.ratings.store', selectedRatingOrder.order_id),
+            {
+                rating: rating,
+                review: reviewText,
+                tags: selectedTags,
+            },
+            {
+                onSuccess: () => {
+                    handleCloseRatingModal();
+                    setIsSubmittingRating(false);
+                },
+                onError: () => {
+                    setIsSubmittingRating(false);
+                },
+            }
+        );
     };
 
     const filteredTransactions = transactions.filter((item) => {
@@ -60,6 +126,22 @@ export default function NegotiationIndex({ transactions = [] }: IndexProps) {
             item.code.toLowerCase().includes(searchQuery.toLowerCase());
         return matchesTab && matchesSearch;
     });
+
+    const getStatusBadge = (status: string) => {
+        switch (status) {
+            case 'Selesai':
+                return 'bg-emerald-100 text-emerald-800 font-bold px-3 py-1 rounded-full text-xs';
+            case 'Pickup':
+                return 'bg-purple-100 text-purple-800 font-bold px-3 py-1 rounded-full text-xs';
+            case 'Pembayaran':
+                return 'bg-blue-100 text-blue-800 font-bold px-3 py-1 rounded-full text-xs';
+            case 'Negosiasi':
+                return 'bg-amber-100 text-amber-800 font-bold px-3 py-1 rounded-full text-xs';
+            case 'Menunggu':
+            default:
+                return 'bg-neutral-100 text-neutral-600 font-bold px-3 py-1 rounded-full text-xs';
+        }
+    };
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -98,7 +180,7 @@ export default function NegotiationIndex({ transactions = [] }: IndexProps) {
                             <button
                                 key={tab}
                                 onClick={() => setOrderTab(tab)}
-                                className={`px-4 py-2 rounded-full text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+                                className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
                                     orderTab === tab
                                         ? 'bg-[#2e5a36] text-white shadow-xs'
                                         : 'bg-white text-neutral-500 hover:bg-neutral-50 border border-neutral-100'
@@ -111,124 +193,149 @@ export default function NegotiationIndex({ transactions = [] }: IndexProps) {
 
                     {/* Transaction List */}
                     {filteredTransactions.length > 0 ? (
-                        <div className="space-y-6">
+                        <div className="space-y-4">
                             {filteredTransactions.map((order) => (
                                 <div
                                     key={order.id}
-                                    className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-6 border-b border-neutral-100 last:border-0 last:pb-0"
+                                    className="rounded-2xl border border-neutral-100 bg-white p-5 shadow-xs transition-all hover:shadow-md space-y-4"
                                 >
-                                    {/* Left Product details */}
-                                    <div className="flex gap-4 min-w-[260px]">
-                                        <div className="h-12 w-12 rounded-xl bg-[#f0f7f1] text-[#2e5a36] flex items-center justify-center font-bold text-sm flex-shrink-0">
-                                            {order.name.charAt(0)}
-                                        </div>
-                                        <div>
-                                            <div className="flex items-center gap-2">
-                                                <h4 className="text-sm font-bold text-neutral-900">{order.name}</h4>
-                                                {order.nego && (
-                                                    <span className="bg-amber-50 text-amber-700 px-2 py-0.5 rounded text-[10px] font-bold">
-                                                        Nego
-                                                    </span>
-                                                )}
+                                    {/* Top Header: Title, Seller, Price & Date */}
+                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                        <div className="flex items-center gap-3">
+                                            {/* Thumbnail */}
+                                            <div className="h-10 w-10 rounded-2xl bg-emerald-50 text-[#2e5a36] flex items-center justify-center font-bold text-sm shrink-0 border border-emerald-100/50">
+                                                {order.name.charAt(0)}
                                             </div>
-                                            <p className="text-xs text-neutral-400 mt-0.5">
-                                                {order.seller} • {order.qty}
-                                            </p>
-                                            <span className="text-[10px] bg-neutral-100 text-neutral-500 font-semibold px-2 py-0.5 rounded mt-2 inline-block">
-                                                {order.code}
-                                            </span>
-                                        </div>
-                                    </div>
-
-                                    {/* Progress Step Bar */}
-                                    <div className="flex items-center gap-2 my-2 lg:my-0">
-                                        {[
-                                            { label: 'Menunggu', idx: 0 },
-                                            { label: 'Negosiasi', idx: 1 },
-                                            { label: 'Pembayaran', idx: 2 },
-                                            { label: 'Pickup', idx: 3 },
-                                            { label: 'Selesai', idx: 4 },
-                                        ].map((stepObj) => {
-                                            const isDone = order.step >= stepObj.idx;
-                                            return (
-                                                <div key={stepObj.idx} className="flex items-center">
-                                                    <div
-                                                        className={`h-2.5 w-2.5 rounded-full ${
-                                                            isDone ? 'bg-[#2e5a36]' : 'bg-neutral-200'
-                                                        }`}
-                                                        title={stepObj.label}
-                                                    />
-                                                    {stepObj.idx < 4 && (
-                                                        <div
-                                                            className={`h-[2px] w-6 sm:w-10 ${
-                                                                order.step > stepObj.idx
-                                                                    ? 'bg-[#2e5a36]'
-                                                                    : 'bg-neutral-200'
-                                                            }`}
-                                                        />
+                                            <div>
+                                                <div className="flex items-center gap-2 flex-wrap">
+                                                    <h3 className="text-sm font-bold text-neutral-900">{order.name}</h3>
+                                                    {order.nego && (
+                                                        <span className="bg-amber-50 text-amber-700 border border-amber-200/60 px-2 py-0.5 rounded-md text-[10px] font-bold">
+                                                            🏷 Nego
+                                                        </span>
                                                     )}
                                                 </div>
-                                            );
-                                        })}
-                                        <span className="text-xs font-bold text-neutral-700 ml-2">
-                                            {order.status}
-                                        </span>
-                                    </div>
-
-                                    {/* Price & Action */}
-                                    <div className="flex items-center justify-between lg:justify-end gap-4 text-right">
-                                        <div>
-                                            <span className="text-sm font-extrabold text-neutral-950 block">
-                                                {order.price}
-                                            </span>
-                                            <span className="text-[10px] text-neutral-400 font-bold block">
-                                                {order.date}
-                                            </span>
+                                                <p className="text-xs text-neutral-500 font-medium mt-0.5 flex items-center gap-1">
+                                                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 inline" />
+                                                    <span>{order.seller} · {order.qty}</span>
+                                                </p>
+                                            </div>
                                         </div>
 
-                                        <div className="flex flex-col gap-2 items-end">
+                                        <div className="text-right">
+                                            <span className="text-sm font-extrabold text-[#2e5a36] block">{order.price}</span>
+                                            <span className="text-[11px] text-neutral-400 font-semibold block mt-0.5">{order.date}</span>
+                                        </div>
+                                    </div>
+
+                                    {/* Center 5-Icon Progress Stepper */}
+                                    <div className="py-2">
+                                        <div className="flex items-center justify-between relative max-w-2xl mx-auto px-4">
+                                            {steps.map((stepObj, idx) => {
+                                                const StepIcon = stepObj.icon;
+                                                const isDone = order.step >= idx;
+                                                const isNextDone = order.step > idx;
+
+                                                return (
+                                                    <div key={idx} className="flex items-center flex-1 last:flex-none">
+                                                        <div
+                                                            className={`h-7 w-7 rounded-full flex items-center justify-center transition-all z-10 ${
+                                                                isDone
+                                                                    ? 'bg-[#2e5a36] text-white shadow-xs'
+                                                                    : 'bg-white border-2 border-neutral-200 text-neutral-300'
+                                                            }`}
+                                                            title={stepObj.label}
+                                                        >
+                                                            <StepIcon className="h-3.5 w-3.5" />
+                                                        </div>
+                                                        {idx < steps.length - 1 && (
+                                                            <div
+                                                                className={`h-[2.5px] flex-1 mx-1 rounded-full ${
+                                                                    isNextDone ? 'bg-[#2e5a36]' : 'bg-neutral-200'
+                                                                }`}
+                                                            />
+                                                        )}
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+
+                                    {/* Bottom Footer: Status Badge + Code on Left, Action Buttons on Right */}
+                                    <div className="flex items-center justify-between pt-2 border-t border-neutral-50">
+                                        <div className="flex items-center gap-2">
+                                            <span className={getStatusBadge(order.status)}>
+                                                {order.status}
+                                            </span>
+                                            <span className="text-xs text-neutral-400 font-bold">{order.code}</span>
+                                        </div>
+
+                                        <div className="flex items-center gap-2">
+                                            {/* Primary Action Button based on status & role */}
                                             {isSeller ? (
                                                 <Link
                                                     href={`/negotiations/${order.negotiation_id}`}
-                                                    className="border border-neutral-200 text-neutral-700 bg-white hover:bg-neutral-50 px-4 py-2.5 rounded-xl text-xs font-bold shadow-xs transition-all inline-flex items-center gap-1.5 cursor-pointer"
+                                                    className="border border-amber-300 text-amber-800 bg-amber-50 hover:bg-amber-100 px-4 py-1.5 rounded-full text-xs font-bold shadow-2xs transition-all inline-flex items-center gap-1.5 cursor-pointer"
                                                 >
+                                                    <MessageSquare className="h-3.5 w-3.5" />
                                                     Lihat Chat
-                                                    <ArrowRight className="h-3.5 w-3.5" />
                                                 </Link>
                                             ) : (
                                                 <>
-                                                    {order.button ? (
-                                                        <Link
-                                                            href={order.action_url}
-                                                            className={`px-4 py-2.5 rounded-xl text-xs font-bold shadow-xs transition-all inline-flex items-center gap-1.5 cursor-pointer ${
-                                                                order.button.includes('Bayar')
-                                                                    ? 'bg-[#2e5a36] text-white hover:bg-[#234529]'
-                                                                    : 'border border-neutral-200 text-neutral-700 bg-white hover:bg-neutral-50'
-                                                            }`}
+                                                    {order.status === 'Selesai' && !order.has_reviewed && (
+                                                        <button
+                                                            onClick={() => handleOpenRatingModal(order)}
+                                                            className="border border-neutral-200 text-neutral-700 bg-white hover:bg-neutral-50 px-4 py-1.5 rounded-full text-xs font-bold inline-flex items-center gap-1 cursor-pointer"
                                                         >
-                                                            {order.button}
-                                                            <ArrowRight className="h-3.5 w-3.5" />
-                                                        </Link>
-                                                    ) : (
+                                                            <Star className="h-3.5 w-3.5 text-amber-500 fill-amber-500" />
+                                                            Beri Ulasan
+                                                        </button>
+                                                    )}
+                                                    {order.status === 'Selesai' && order.has_reviewed && (
                                                         <Link
-                                                            href={order.action_url}
-                                                            className="border border-neutral-200 bg-white text-neutral-600 hover:bg-neutral-50 px-4 py-2.5 rounded-xl text-xs font-bold"
+                                                            href={`/negotiations/${order.negotiation_id}`}
+                                                            className="border border-amber-300 text-amber-800 bg-amber-50 hover:bg-amber-100 px-4 py-1.5 rounded-full text-xs font-bold inline-flex items-center gap-1 cursor-pointer"
                                                         >
-                                                            Detail
+                                                            <MessageSquare className="h-3.5 w-3.5" />
+                                                            Lihat Chat
                                                         </Link>
                                                     )}
-
-                                                    {order.status === 'Pickup' && order.complete_url && (
-                                                        <button
-                                                            onClick={() => handleCompleteOrder(order.complete_url!)}
-                                                            className="px-4 py-2 rounded-xl text-xs font-bold bg-[#2e5a36] text-white hover:bg-[#234529] transition-all cursor-pointer shadow-xs inline-flex items-center gap-1.5"
+                                                    {order.status === 'Pickup' && (
+                                                        <Link
+                                                            href={order.action_url}
+                                                            className="border border-neutral-200 text-neutral-700 bg-white hover:bg-neutral-50 px-4 py-1.5 rounded-full text-xs font-bold inline-flex items-center gap-1 cursor-pointer"
                                                         >
-                                                            <CheckCircle2 className="h-3.5 w-3.5" />
-                                                            Selesai
-                                                        </button>
+                                                            Lihat Invoice
+                                                        </Link>
+                                                    )}
+                                                    {order.status === 'Pembayaran' && (
+                                                        <Link
+                                                            href={order.action_url}
+                                                            className="bg-[#2e5a36] hover:bg-[#234529] text-white px-4 py-1.5 rounded-full text-xs font-bold shadow-xs inline-flex items-center gap-1.5 cursor-pointer"
+                                                        >
+                                                            <CreditCard className="h-3.5 w-3.5" />
+                                                            Bayar Sekarang
+                                                        </Link>
+                                                    )}
+                                                    {(order.status === 'Negosiasi' || order.status === 'Menunggu') && (
+                                                        <Link
+                                                            href={`/negotiations/${order.negotiation_id}`}
+                                                            className="border border-amber-300 text-amber-800 bg-amber-50 hover:bg-amber-100 px-4 py-1.5 rounded-full text-xs font-bold inline-flex items-center gap-1 cursor-pointer"
+                                                        >
+                                                            <MessageSquare className="h-3.5 w-3.5" />
+                                                            Lihat Chat
+                                                        </Link>
                                                     )}
                                                 </>
                                             )}
+
+                                            {/* Crucial Requirement: Detail Button ALWAYS Present for all statuses & roles */}
+                                            <Link
+                                                href={order.detail_url || `/products/${order.id}`}
+                                                className="border border-neutral-200 text-neutral-600 bg-white hover:bg-neutral-50 px-4 py-1.5 rounded-full text-xs font-bold shadow-2xs"
+                                            >
+                                                Detail
+                                            </Link>
                                         </div>
                                     </div>
                                 </div>
@@ -251,6 +358,112 @@ export default function NegotiationIndex({ transactions = [] }: IndexProps) {
                     )}
                 </div>
             </div>
+
+            {/* Rating Modal */}
+            {isRatingModalOpen && selectedRatingOrder && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-neutral-900/60 backdrop-blur-xs">
+                    <div className="bg-white rounded-3xl overflow-hidden shadow-2xl max-w-lg w-full transform transition-all flex flex-col border border-neutral-100">
+                        {/* Header */}
+                        <div className="bg-[#2e5a36] text-white p-6 relative flex items-center gap-4">
+                            <button
+                                onClick={handleCloseRatingModal}
+                                className="absolute top-4 right-4 text-white/80 hover:text-white hover:scale-105 transition-all cursor-pointer"
+                            >
+                                <X className="h-6 w-6" />
+                            </button>
+
+                            <div>
+                                <h3 className="font-extrabold text-base capitalize">{selectedRatingOrder.name}</h3>
+                                <p className="text-xs text-white/80 font-medium mt-0.5">{selectedRatingOrder.seller} • {selectedRatingOrder.code}</p>
+                            </div>
+                        </div>
+
+                        {/* Body */}
+                        <form onSubmit={handleSubmitRating} className="p-6 space-y-6 flex-1">
+                            <div className="text-center space-y-3">
+                                <h4 className="font-extrabold text-neutral-900 text-base">Seberapa puas Anda dengan produk ini?</h4>
+                                <div className="flex justify-center items-center gap-2.5">
+                                    {[1, 2, 3, 4, 5].map((starIdx) => {
+                                        const isFilled = hoverRating >= starIdx || (hoverRating === 0 && rating >= starIdx);
+                                        return (
+                                            <button
+                                                key={starIdx}
+                                                type="button"
+                                                onClick={() => setRating(starIdx)}
+                                                onMouseEnter={() => setHoverRating(starIdx)}
+                                                onMouseLeave={() => setHoverRating(0)}
+                                                className="cursor-pointer transition-all hover:scale-110 active:scale-95"
+                                            >
+                                                <Star
+                                                    className={`h-8 w-8 transition-colors ${
+                                                        isFilled
+                                                            ? 'fill-[#f43f5e] text-[#f43f5e]'
+                                                            : 'text-neutral-200 fill-none'
+                                                    }`}
+                                                />
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+
+                            <div className="space-y-3">
+                                <h4 className="text-[10px] font-black text-neutral-400 uppercase tracking-widest">Pilih yang sesuai</h4>
+                                <div className="flex flex-wrap gap-2">
+                                    {availableTags.map((tag) => {
+                                        const isSelected = selectedTags.includes(tag);
+                                        return (
+                                            <button
+                                                key={tag}
+                                                type="button"
+                                                onClick={() => toggleTag(tag)}
+                                                className={`px-4 py-2.5 rounded-full text-xs font-bold transition-all border cursor-pointer ${
+                                                    isSelected
+                                                        ? 'bg-[#f0f7f1] text-[#2e5a36] border-[#2e5a36]/30'
+                                                        : 'bg-white text-neutral-500 border-neutral-200 hover:bg-neutral-50'
+                                                }`}
+                                            >
+                                                {tag}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <h4 className="text-[10px] font-black text-neutral-400 uppercase tracking-widest">Ceritakan Pengalaman Anda</h4>
+                                <div className="relative">
+                                    <textarea
+                                        value={reviewText}
+                                        onChange={(e) => setReviewText(e.target.value.slice(0, 500))}
+                                        rows={4}
+                                        placeholder="Bagikan pengalaman Anda menggunakan produk ini..."
+                                        className="w-full rounded-2xl border-transparent bg-[#f6faf6] p-4 text-xs sm:text-sm text-neutral-900 focus:border-[#2e5a36] focus:ring-2 focus:ring-[#2e5a36]/20 transition-all outline-none placeholder-neutral-400 font-medium resize-none"
+                                    />
+                                    <span className="absolute bottom-3 right-4 text-[10px] text-neutral-400 font-bold">
+                                        {reviewText.length}/500
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div className="space-y-3 pt-2">
+                                <button
+                                    type="submit"
+                                    disabled={rating === 0 || isSubmittingRating}
+                                    className={`w-full py-4 rounded-full font-bold text-sm shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                                        rating === 0 || isSubmittingRating
+                                            ? 'bg-neutral-100 text-neutral-400 cursor-not-allowed shadow-none'
+                                            : 'bg-[#2e5a36] hover:bg-[#234529] text-white active:scale-[0.98]'
+                                    }`}
+                                >
+                                    <Star className="h-4.5 w-4.5 fill-current" /> Kirim Ulasan
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </AppLayout>
     );
 }
+

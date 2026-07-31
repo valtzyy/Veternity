@@ -1,9 +1,10 @@
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, usePage } from '@inertiajs/react';
-import { 
-    TrendingUp, Package, MessageSquare, CheckCircle, Upload, ArrowUpRight, 
-    Calendar, Wallet, ShoppingBag, Search, Leaf, BadgeCheck, MessageCircle, Star 
+import {
+    TrendingUp, Package, MessageSquare, CheckCircle, Upload, ArrowUpRight,
+    Calendar, Wallet, ShoppingBag, Search, Leaf, BadgeCheck, MessageCircle, Star,
+    Clock, Handshake, CreditCard, Truck, CheckCircle2
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -48,6 +49,8 @@ interface TransactionItem {
     step: number;
     button: string | null;
     action_url: string;
+    detail_url?: string;
+    has_reviewed?: boolean;
     nego?: boolean;
 }
 
@@ -293,11 +296,10 @@ export default function Dashboard({ stats, recentOrders, transactions = [], buye
                                 <button
                                     key={tab}
                                     onClick={() => setOrderTab(tab)}
-                                    className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer ${
-                                        orderTab === tab 
-                                        ? 'bg-[#2e5a36] text-white' 
-                                        : 'bg-white text-neutral-500 hover:bg-neutral-50 border border-neutral-100'
-                                    }`}
+                                    className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer ${orderTab === tab
+                                            ? 'bg-[#2e5a36] text-white'
+                                            : 'bg-white text-neutral-500 hover:bg-neutral-50 border border-neutral-100'
+                                        }`}
                                 >
                                     {tab}
                                 </button>
@@ -306,69 +308,140 @@ export default function Dashboard({ stats, recentOrders, transactions = [], buye
 
                         {/* Order timeline list */}
                         {previewTransactions.length > 0 ? (
-                            <div className="space-y-6">
+                            <div className="space-y-4">
                                 {previewTransactions.map((order) => (
-                                    <div key={order.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-neutral-100 last:border-0 last:pb-0">
-                                        <div className="flex gap-4">
-                                            <div className="h-12 w-12 rounded-xl bg-[#f0f7f1] text-[#2e5a36] flex items-center justify-center font-bold text-xs flex-shrink-0">
-                                                {order.name.charAt(0)}
-                                            </div>
-                                            <div>
-                                                <div className="flex items-center gap-2">
-                                                    <h4 className="text-sm font-bold text-neutral-900">{order.name}</h4>
-                                                    {order.nego && <span className="bg-amber-50 text-amber-700 px-2 py-0.5 rounded text-[10px] font-bold">Nego</span>}
+                                    <div
+                                        key={order.id}
+                                        className="rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs space-y-3"
+                                    >
+                                        {/* Top Header */}
+                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                            <div className="flex items-center gap-3">
+                                                <div className="h-9 w-9 rounded-xl bg-emerald-50 text-[#2e5a36] flex items-center justify-center font-bold text-xs shrink-0 border border-emerald-100/50">
+                                                    {order.name.charAt(0)}
                                                 </div>
-                                                <p className="text-xs text-neutral-400 mt-0.5">{order.seller} • {order.qty}</p>
-                                                <span className="text-[10px] bg-neutral-100 text-neutral-500 font-semibold px-2 py-0.5 rounded mt-2 inline-block">{order.code}</span>
-                                            </div>
-                                        </div>
-
-                                        {/* Progress Step bar in center */}
-                                        <div className="flex items-center gap-2 my-2 sm:my-0">
-                                            {[0, 1, 2, 3, 4].map((stepIdx) => {
-                                                const isDone = order.step >= stepIdx;
-                                                return (
-                                                    <div key={stepIdx} className="flex items-center">
-                                                        <div className={`h-2.5 w-2.5 rounded-full ${isDone ? 'bg-[#2e5a36]' : 'bg-neutral-200'}`} />
-                                                        {stepIdx < 4 && <div className={`h-[2px] w-6 ${order.step > stepIdx ? 'bg-[#2e5a36]' : 'bg-neutral-200'}`} />}
+                                                <div>
+                                                    <div className="flex items-center gap-2 flex-wrap">
+                                                        <h4 className="text-sm font-bold text-neutral-900">{order.name}</h4>
+                                                        {order.nego && (
+                                                            <span className="bg-amber-50 text-amber-700 border border-amber-200/60 px-1.5 py-0.5 rounded text-[10px] font-bold">
+                                                                🏷 Nego
+                                                            </span>
+                                                        )}
                                                     </div>
-                                                );
-                                            })}
-                                            <span className="text-xs font-bold text-neutral-600 ml-2">{order.status}</span>
+                                                    <p className="text-xs text-neutral-400 mt-0.5">{order.seller} • {order.qty}</p>
+                                                </div>
+                                            </div>
+
+                                            <div className="text-right">
+                                                <span className="text-sm font-extrabold text-[#2e5a36] block">{order.price}</span>
+                                                <span className="text-[10px] text-neutral-400 font-semibold block">{order.date}</span>
+                                            </div>
                                         </div>
 
-                                        {/* Action button */}
-                                        <div className="flex items-center gap-3 text-right">
-                                            <div className="mr-4">
-                                                <span className="text-sm font-extrabold text-neutral-950 block">{order.price}</span>
-                                                <span className="text-[10px] text-neutral-400 font-bold">{order.date}</span>
+                                        {/* Center 5-Icon Progress Stepper */}
+                                        <div className="py-1">
+                                            <div className="flex items-center justify-between relative max-w-xl mx-auto px-2">
+                                                {[
+                                                    { label: 'Menunggu', icon: Clock },
+                                                    { label: 'Negosiasi', icon: Handshake },
+                                                    { label: 'Pembayaran', icon: CreditCard },
+                                                    { label: 'Pickup', icon: Truck },
+                                                    { label: 'Selesai', icon: CheckCircle2 },
+                                                ].map((stepObj, idx) => {
+                                                    const StepIcon = stepObj.icon;
+                                                    const isDone = order.step >= idx;
+                                                    const isNextDone = order.step > idx;
+
+                                                    return (
+                                                        <div key={idx} className="flex items-center flex-1 last:flex-none">
+                                                            <div
+                                                                className={`h-6 w-6 rounded-full flex items-center justify-center transition-all z-10 ${
+                                                                    isDone
+                                                                        ? 'bg-[#2e5a36] text-white shadow-xs'
+                                                                        : 'bg-white border-2 border-neutral-200 text-neutral-300'
+                                                                }`}
+                                                                title={stepObj.label}
+                                                            >
+                                                                <StepIcon className="h-3 w-3" />
+                                                            </div>
+                                                            {idx < 4 && (
+                                                                <div
+                                                                    className={`h-[2px] flex-1 mx-1 rounded-full ${
+                                                                        isNextDone ? 'bg-[#2e5a36]' : 'bg-neutral-200'
+                                                                    }`}
+                                                                />
+                                                            )}
+                                                        </div>
+                                                    );
+                                                })}
                                             </div>
-                                            {isSeller ? (
+                                        </div>
+
+                                        {/* Bottom Footer */}
+                                        <div className="flex items-center justify-between pt-2 border-t border-neutral-50">
+                                            <div className="flex items-center gap-2">
+                                                <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
+                                                    order.status === 'Selesai'
+                                                        ? 'bg-emerald-100 text-emerald-800'
+                                                        : order.status === 'Pickup'
+                                                        ? 'bg-purple-100 text-purple-800'
+                                                        : order.status === 'Pembayaran'
+                                                        ? 'bg-blue-100 text-blue-800'
+                                                        : order.status === 'Negosiasi'
+                                                        ? 'bg-amber-100 text-amber-800'
+                                                        : 'bg-neutral-100 text-neutral-600'
+                                                }`}>
+                                                    {order.status}
+                                                </span>
+                                                <span className="text-[10px] text-neutral-400 font-bold">{order.code}</span>
+                                            </div>
+
+                                            <div className="flex items-center gap-2">
+                                                {isSeller ? (
+                                                    <Link
+                                                        href={`/negotiations/${order.negotiation_id}`}
+                                                        className="border border-amber-300 text-amber-800 bg-amber-50 hover:bg-amber-100 px-3 py-1 rounded-full text-xs font-bold shadow-2xs transition-colors cursor-pointer"
+                                                    >
+                                                        Lihat Chat
+                                                    </Link>
+                                                ) : (
+                                                    <>
+                                                        {order.status === 'Pembayaran' && (
+                                                            <Link
+                                                                href={order.action_url}
+                                                                className="bg-[#2e5a36] hover:bg-[#234529] text-white px-3 py-1 rounded-full text-xs font-bold shadow-xs transition-colors cursor-pointer"
+                                                            >
+                                                                Bayar Sekarang
+                                                            </Link>
+                                                        )}
+                                                        {(order.status === 'Negosiasi' || order.status === 'Menunggu' || order.status === 'Selesai') && (
+                                                            <Link
+                                                                href={`/negotiations/${order.negotiation_id}`}
+                                                                className="border border-amber-300 text-amber-800 bg-amber-50 hover:bg-amber-100 px-3 py-1 rounded-full text-xs font-bold transition-colors cursor-pointer"
+                                                            >
+                                                                {order.status === 'Selesai' && !order.has_reviewed ? 'Beri Ulasan' : 'Lihat Chat'}
+                                                            </Link>
+                                                        )}
+                                                        {order.status === 'Pickup' && (
+                                                            <Link
+                                                                href={order.action_url}
+                                                                className="border border-neutral-200 text-neutral-700 bg-white hover:bg-neutral-50 px-3 py-1 rounded-full text-xs font-bold transition-colors cursor-pointer"
+                                                            >
+                                                                Lihat Invoice
+                                                            </Link>
+                                                        )}
+                                                    </>
+                                                )}
+
+                                                {/* Crucial: Detail Button ALWAYS present */}
                                                 <Link
-                                                    href={`/negotiations/${order.negotiation_id}`}
-                                                    className="border border-neutral-200 text-neutral-700 bg-white hover:bg-neutral-50 px-4 py-2 rounded-xl text-xs font-bold shadow-xs transition-colors cursor-pointer"
-                                                >
-                                                    Lihat Chat
-                                                </Link>
-                                            ) : order.button ? (
-                                                <Link
-                                                    href={order.action_url}
-                                                    className={`px-4 py-2 rounded-xl text-xs font-bold shadow-xs transition-colors cursor-pointer ${
-                                                        order.button.includes('Bayar') 
-                                                        ? 'bg-[#2e5a36] text-white hover:bg-[#234529]' 
-                                                        : 'border border-neutral-200 text-neutral-700 bg-white hover:bg-neutral-50'
-                                                    }`}
-                                                >
-                                                    {order.button}
-                                                </Link>
-                                            ) : (
-                                                <Link
-                                                    href={order.action_url}
-                                                    className="border border-neutral-200 bg-white text-neutral-600 hover:bg-neutral-50 px-4 py-2 rounded-xl text-xs font-bold"
+                                                    href={order.detail_url || `/products/${order.id}`}
+                                                    className="border border-neutral-200 bg-white text-neutral-600 hover:bg-neutral-50 px-3 py-1 rounded-full text-xs font-bold shadow-2xs"
                                                 >
                                                     Detail
                                                 </Link>
-                                            )}
+                                            </div>
                                         </div>
                                     </div>
                                 ))}
@@ -562,15 +635,14 @@ export default function Dashboard({ stats, recentOrders, transactions = [], buye
                                             {order.detail}
                                         </p>
                                     </div>
-                                    <span className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium border ${
-                                        order.status_color === 'success'
+                                    <span className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium border ${order.status_color === 'success'
                                             ? 'bg-[#e6f4e9] text-[#2e5a36] border-[#2e5a36]/20'
                                             : order.status_color === 'blue'
-                                            ? 'bg-blue-50 text-blue-700 border-blue-200'
-                                            : order.status_color === 'warning'
-                                            ? 'bg-amber-50 text-amber-700 border-amber-200'
-                                            : 'bg-neutral-100 text-neutral-700 border-neutral-200'
-                                    }`}>
+                                                ? 'bg-blue-50 text-blue-700 border-blue-200'
+                                                : order.status_color === 'warning'
+                                                    ? 'bg-amber-50 text-amber-700 border-amber-200'
+                                                    : 'bg-neutral-100 text-neutral-700 border-neutral-200'
+                                        }`}>
                                         {order.status}
                                     </span>
                                 </div>

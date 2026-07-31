@@ -91,6 +91,14 @@ interface Negotiation {
     order?: Order;
 }
 
+interface Lifecycle {
+    status: 'Menunggu' | 'Negosiasi' | 'Pembayaran' | 'Pickup' | 'Selesai' | 'Batal';
+    step: number;
+    can_chat: boolean;
+    can_offer: boolean;
+    has_reviewed: boolean;
+}
+
 interface ShowProps {
     negotiation: Negotiation;
     product: Product;
@@ -98,13 +106,15 @@ interface ShowProps {
     seller: User;
     chatMessages: ChatMessage[];
     activeNegotiations: Negotiation[];
+    lifecycle?: Lifecycle;
 }
 
-export default function NegotiationShow({ negotiation, product, buyer, seller, chatMessages, activeNegotiations }: ShowProps) {
+export default function NegotiationShow({ negotiation, product, buyer, seller, chatMessages, activeNegotiations, lifecycle }: ShowProps) {
     const { auth } = usePage<SharedData>().props;
     const authUser = auth.user;
 
     const isBuyer = authUser?.id === buyer.id;
+    const isSeller = !isBuyer;
     const partner = isBuyer ? seller : buyer;
 
     const [isOfferModalOpen, setIsOfferModalOpen] = useState(false);
@@ -322,69 +332,45 @@ export default function NegotiationShow({ negotiation, product, buyer, seller, c
                         <h3 className="text-xs font-bold tracking-wider text-slate-400 uppercase">STATUS TRANSAKSI</h3>
 
                         <div className="relative flex flex-col gap-6 pl-7 before:absolute before:top-3 before:bottom-3 before:left-3 before:w-0.5 before:bg-slate-200">
-                            {/* Step 1 */}
-                            <div className="relative flex items-center justify-between">
-                                <div className="absolute -left-7 z-10 flex h-6 w-6 items-center justify-center rounded-full bg-emerald-600 text-white">
-                                    <Check className="h-3.5 w-3.5" />
-                                </div>
-                                <span className="text-sm font-semibold text-slate-800">Menunggu</span>
-                            </div>
+                            {[
+                                { label: 'Menunggu', idx: 0 },
+                                { label: 'Negosiasi', idx: 1 },
+                                { label: 'Pembayaran', idx: 2 },
+                                { label: 'Pickup', idx: 3 },
+                                { label: 'Selesai', idx: 4 },
+                            ].map((st) => {
+                                const statusVal = lifecycle?.status || (negotiation.order ? (negotiation.order.status === 'completed' ? 'Selesai' : negotiation.order.status === 'paid' ? 'Pickup' : 'Pembayaran') : (negotiation.status === 'agreed' ? 'Pembayaran' : negotiation.status === 'negotiating' ? 'Negosiasi' : 'Menunggu'));
+                                const stepVal = lifecycle?.step ?? (statusVal === 'Selesai' ? 4 : statusVal === 'Pickup' ? 3 : statusVal === 'Pembayaran' ? 2 : statusVal === 'Negosiasi' ? 1 : 0);
 
-                            {/* Step 2 (Negotiating) */}
-                            <div className="relative flex items-center justify-between">
-                                <div
-                                    className={`absolute -left-7 z-10 flex h-6 w-6 items-center justify-center rounded-full ${
-                                        negotiation.status === 'negotiating'
-                                            ? 'bg-emerald-600 text-white ring-4 ring-emerald-100'
-                                            : 'bg-emerald-600 text-white'
-                                    }`}
-                                >
-                                    <Check className="h-3.5 w-3.5" />
-                                </div>
-                                <span
-                                    className={`text-sm ${
-                                        negotiation.status === 'negotiating' ? 'font-bold text-emerald-700' : 'font-semibold text-slate-800'
-                                    }`}
-                                >
-                                    Negosiasi
-                                </span>
-                                {negotiation.status === 'negotiating' && (
-                                    <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700">Aktif</span>
-                                )}
-                            </div>
+                                const isDone = stepVal > st.idx;
+                                const isCurrent = stepVal === st.idx;
 
-                            {/* Step 3 (Pembayaran) */}
-                            <div className="relative flex items-center justify-between">
-                                <div
-                                    className={`absolute -left-7 z-10 flex h-6 w-6 items-center justify-center rounded-full border-2 ${
-                                        negotiation.status === 'agreed' ? 'border-emerald-600 bg-emerald-600 text-white' : 'border-slate-300 bg-white'
-                                    }`}
-                                >
-                                    {negotiation.status === 'agreed' && <Check className="h-3.5 w-3.5" />}
-                                </div>
-                                <span
-                                    className={`text-sm ${
-                                        negotiation.status === 'agreed' ? 'font-bold text-emerald-700' : 'font-medium text-slate-400'
-                                    }`}
-                                >
-                                    Pembayaran
-                                </span>
-                                {negotiation.status === 'agreed' && (
-                                    <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700">Aktif</span>
-                                )}
-                            </div>
-
-                            {/* Step 4 */}
-                            <div className="relative flex items-center justify-between">
-                                <div className="absolute -left-7 z-10 h-6 w-6 rounded-full border-2 border-slate-300 bg-white" />
-                                <span className="text-sm font-medium text-slate-400">Pickup</span>
-                            </div>
-
-                            {/* Step 5 */}
-                            <div className="relative flex items-center justify-between">
-                                <div className="absolute -left-7 z-10 h-6 w-6 rounded-full border-2 border-slate-300 bg-white" />
-                                <span className="text-sm font-medium text-slate-400">Selesai</span>
-                            </div>
+                                return (
+                                    <div key={st.idx} className="relative flex items-center justify-between">
+                                        <div
+                                            className={`absolute -left-7 z-10 flex h-6 w-6 items-center justify-center rounded-full ${
+                                                isCurrent
+                                                    ? 'bg-emerald-600 text-white ring-4 ring-emerald-100'
+                                                    : isDone
+                                                      ? 'bg-emerald-600 text-white'
+                                                      : 'border-2 border-slate-300 bg-white'
+                                            }`}
+                                        >
+                                            {(isDone || isCurrent) && <Check className="h-3.5 w-3.5" />}
+                                        </div>
+                                        <span
+                                            className={`text-sm ${
+                                                isCurrent ? 'font-bold text-emerald-700' : isDone ? 'font-semibold text-slate-800' : 'font-medium text-slate-400'
+                                            }`}
+                                        >
+                                            {st.label}
+                                        </span>
+                                        {isCurrent && (
+                                            <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700">Aktif</span>
+                                        )}
+                                    </div>
+                                );
+                            })}
                         </div>
                     </div>
 
@@ -392,63 +378,77 @@ export default function NegotiationShow({ negotiation, product, buyer, seller, c
                     <div className="flex flex-col gap-3 rounded-2xl border border-slate-100 bg-white p-5 shadow-xs">
                         <h3 className="mb-1 text-xs font-bold tracking-wider text-slate-400 uppercase">TINDAKAN CEPAT</h3>
 
-                        {negotiation.order ? (
-                            negotiation.order.status === 'paid' ? (
-                                <Link
-                                    href={route('invoices.show', negotiation.order.invoice?.id)}
-                                    className="flex w-full items-center justify-center gap-2 rounded-full border border-[#2e5a36]/20 bg-[#f0f7f1] px-4 py-3 text-sm font-semibold text-[#2e5a36] shadow-xs transition-all hover:bg-emerald-50"
-                                >
-                                    <ShoppingBag className="h-4 w-4" />
-                                    Lihat Bukti Pembayaran
-                                </Link>
-                            ) : isBuyer ? (
-                                <Link
-                                    href={route('orders.payment', negotiation.order.id)}
-                                    className="flex w-full items-center justify-center gap-2 rounded-full bg-emerald-700 px-4 py-3 text-sm font-semibold text-white shadow-md transition-all hover:bg-emerald-800"
-                                >
-                                    <CreditCard className="h-4 w-4" />
-                                    Bayar Sekarang
-                                </Link>
-                            ) : (
-                                <div className="rounded-2xl border border-slate-100 bg-slate-50 p-3 text-center text-xs leading-relaxed font-semibold text-slate-500">
-                                    Menunggu pembayaran dari pembeli.
-                                </div>
-                            )
-                        ) : negotiation.status === 'agreed' ? (
-                            isBuyer ? (
-                                <Link
-                                    href={route('negotiations.checkout', negotiation.id)}
-                                    className="flex w-full items-center justify-center gap-2 rounded-full bg-emerald-700 px-4 py-3 text-sm font-semibold text-white shadow-md transition-all hover:bg-emerald-800"
-                                >
-                                    <CreditCard className="h-4 w-4" />
-                                    Lanjut ke Pembayaran
-                                </Link>
-                            ) : (
-                                <div className="rounded-2xl border border-slate-100 bg-slate-50 p-3 text-center text-xs leading-relaxed font-semibold text-slate-500">
-                                    Negosiasi telah disetujui! Menunggu pembayaran dari pembeli.
-                                </div>
-                            )
+                        {isSeller ? (
+                            <div className="rounded-2xl border border-slate-100 bg-slate-50 p-3 text-center text-xs leading-relaxed font-semibold text-slate-500">
+                                Sesi percakapan transaksi. Semua rincian tersimpan otomatis.
+                            </div>
                         ) : (
                             <>
-                                <button
-                                    type="button"
-                                    disabled={!canRespondToPendingOffer}
-                                    onClick={() => latestPendingOffer && handleAcceptOffer(latestPendingOffer.id)}
-                                    className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-emerald-700 px-4 py-3 text-sm font-semibold text-white shadow-xs transition-colors hover:bg-emerald-800 disabled:opacity-40"
-                                >
-                                    <ThumbsUp className="h-4 w-4" />
-                                    Terima Penawaran
-                                </button>
+                                {negotiation.order ? (
+                                    negotiation.order.status === 'paid' || negotiation.order.status === 'shipping' ? (
+                                        negotiation.order.invoice ? (
+                                            <Link
+                                                href={route('invoices.show', negotiation.order.invoice.id)}
+                                                className="flex w-full items-center justify-center gap-2 rounded-full border border-[#2e5a36]/20 bg-[#f0f7f1] px-4 py-3 text-sm font-semibold text-[#2e5a36] shadow-xs transition-all hover:bg-emerald-50"
+                                            >
+                                                <ShoppingBag className="h-4 w-4" />
+                                                Lihat Invoice
+                                            </Link>
+                                        ) : (
+                                            <div className="rounded-2xl border border-blue-100 bg-blue-50/70 p-3 text-center text-xs leading-relaxed font-semibold text-blue-800">
+                                                Pesanan sedang diproses/pickup oleh seller.
+                                            </div>
+                                        )
+                                    ) : isBuyer ? (
+                                        <Link
+                                            href={route('orders.payment', negotiation.order.id)}
+                                            className="flex w-full items-center justify-center gap-2 rounded-full bg-emerald-700 px-4 py-3 text-sm font-semibold text-white shadow-md transition-all hover:bg-emerald-800"
+                                        >
+                                            <CreditCard className="h-4 w-4" />
+                                            Bayar Sekarang
+                                        </Link>
+                                    ) : (
+                                        <div className="rounded-2xl border border-slate-100 bg-slate-50 p-3 text-center text-xs leading-relaxed font-semibold text-slate-500">
+                                            Menunggu pembayaran dari pembeli.
+                                        </div>
+                                    )
+                                ) : negotiation.status === 'agreed' ? (
+                                    isBuyer ? (
+                                        <Link
+                                            href={route('negotiations.checkout', negotiation.id)}
+                                            className="flex w-full items-center justify-center gap-2 rounded-full bg-emerald-700 px-4 py-3 text-sm font-semibold text-white shadow-md transition-all hover:bg-emerald-800"
+                                        >
+                                            <CreditCard className="h-4 w-4" />
+                                            Lanjut ke Pembayaran
+                                        </Link>
+                                    ) : (
+                                        <div className="rounded-2xl border border-slate-100 bg-slate-50 p-3 text-center text-xs leading-relaxed font-semibold text-slate-500">
+                                            Negosiasi telah disetujui! Menunggu pembayaran dari pembeli.
+                                        </div>
+                                    )
+                                ) : (
+                                    <>
+                                        <button
+                                            type="button"
+                                            disabled={!canRespondToPendingOffer}
+                                            onClick={() => latestPendingOffer && handleAcceptOffer(latestPendingOffer.id)}
+                                            className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-emerald-700 px-4 py-3 text-sm font-semibold text-white shadow-xs transition-colors hover:bg-emerald-800 disabled:opacity-40"
+                                        >
+                                            <ThumbsUp className="h-4 w-4" />
+                                            Terima Penawaran
+                                        </button>
 
-                                <button
-                                    type="button"
-                                    disabled={!canRespondToPendingOffer}
-                                    onClick={() => latestPendingOffer && handleRejectOffer(latestPendingOffer.id)}
-                                    className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 disabled:opacity-40"
-                                >
-                                    <ThumbsDown className="h-4 w-4 text-rose-500" />
-                                    Tolak Negosiasi
-                                </button>
+                                        <button
+                                            type="button"
+                                            disabled={!canRespondToPendingOffer}
+                                            onClick={() => latestPendingOffer && handleRejectOffer(latestPendingOffer.id)}
+                                            className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 disabled:opacity-40"
+                                        >
+                                            <ThumbsDown className="h-4 w-4 text-rose-500" />
+                                            Tolak Negosiasi
+                                        </button>
+                                    </>
+                                )}
                             </>
                         )}
 
@@ -491,9 +491,8 @@ export default function NegotiationShow({ negotiation, product, buyer, seller, c
 
                         <div className="flex items-center gap-3">
                             <span
-                                className={`flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-semibold ${
-                                    negotiation.status === 'agreed' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100/70 text-amber-700'
-                                }`}
+                                className={`flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-semibold ${negotiation.status === 'agreed' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100/70 text-amber-700'
+                                    }`}
                             >
                                 <Clock className="h-3.5 w-3.5" />
                                 {negotiation.status === 'agreed' ? 'Disetujui' : 'Negosiasi Aktif'}
@@ -544,15 +543,14 @@ export default function NegotiationShow({ negotiation, product, buyer, seller, c
                                                         Penawaran
                                                     </div>
                                                     <span
-                                                        className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
-                                                            msg.offer_status === 'accepted'
+                                                        className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${msg.offer_status === 'accepted'
                                                                 ? 'bg-emerald-100 text-emerald-800'
                                                                 : msg.offer_status === 'rejected'
-                                                                  ? 'bg-rose-100 text-rose-800'
-                                                                  : msg.offer_status === 'countered'
-                                                                    ? 'bg-amber-100 text-amber-800'
-                                                                    : 'bg-blue-100 text-blue-800'
-                                                        }`}
+                                                                    ? 'bg-rose-100 text-rose-800'
+                                                                    : msg.offer_status === 'countered'
+                                                                        ? 'bg-amber-100 text-amber-800'
+                                                                        : 'bg-blue-100 text-blue-800'
+                                                            }`}
                                                     >
                                                         {msg.offer_status?.toUpperCase()}
                                                     </span>
@@ -607,9 +605,9 @@ export default function NegotiationShow({ negotiation, product, buyer, seller, c
                                             <span className="text-[11px] text-slate-400">
                                                 {msg.created_at
                                                     ? new Date(msg.created_at).toLocaleTimeString('id-ID', {
-                                                          hour: '2-digit',
-                                                          minute: '2-digit',
-                                                      })
+                                                        hour: '2-digit',
+                                                        minute: '2-digit',
+                                                    })
                                                     : ''}
                                             </span>
                                         </div>
@@ -634,11 +632,10 @@ export default function NegotiationShow({ negotiation, product, buyer, seller, c
                                         )}
                                         <div className={`flex flex-col ${isSelf ? 'items-end' : 'items-start'}`}>
                                             <div
-                                                className={`p-3 text-sm leading-relaxed shadow-2xs ${
-                                                    isSelf
+                                                className={`p-3 text-sm leading-relaxed shadow-2xs ${isSelf
                                                         ? 'rounded-2xl rounded-tr-xs bg-emerald-800 text-white'
                                                         : 'rounded-2xl rounded-tl-xs border border-amber-100/60 bg-amber-50/60 text-slate-800'
-                                                }`}
+                                                    }`}
                                             >
                                                 {msg.image_url && (
                                                     <a href={msg.image_url} target="_blank" rel="noopener noreferrer" className="block mb-2 overflow-hidden rounded-xl">
@@ -650,9 +647,9 @@ export default function NegotiationShow({ negotiation, product, buyer, seller, c
                                             <span className="mt-1 block text-[11px] text-slate-400">
                                                 {msg.created_at
                                                     ? new Date(msg.created_at).toLocaleTimeString('id-ID', {
-                                                          hour: '2-digit',
-                                                          minute: '2-digit',
-                                                      })
+                                                        hour: '2-digit',
+                                                        minute: '2-digit',
+                                                    })
                                                     : ''}
                                             </span>
                                         </div>
@@ -756,9 +753,8 @@ export default function NegotiationShow({ negotiation, product, buyer, seller, c
                                         <Link
                                             key={item.id}
                                             href={route('negotiations.show', item.id)}
-                                            className={`-mx-2 flex items-start gap-3 rounded-xl px-2 py-3 transition-colors ${
-                                                isCurrent ? 'bg-slate-50/80 font-bold' : 'hover:bg-slate-50/50'
-                                            }`}
+                                            className={`-mx-2 flex items-start gap-3 rounded-xl px-2 py-3 transition-colors ${isCurrent ? 'bg-slate-50/80 font-bold' : 'hover:bg-slate-50/50'
+                                                }`}
                                         >
                                             <div className="relative shrink-0">
                                                 <img
@@ -865,6 +861,7 @@ export default function NegotiationShow({ negotiation, product, buyer, seller, c
                     </div>
                 </div>
             )}
+            
         </div>
     );
 }

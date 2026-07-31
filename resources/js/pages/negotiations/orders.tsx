@@ -67,7 +67,7 @@ interface Props {
 
 export default function OrdersIndex({ negotiations }: Props) {
     // Start background polling every 5 seconds to keep data real-time
-    usePoll(5000);
+    usePoll(30000);
 
     const [activeTab, setActiveTab] = useState('Semua');
 

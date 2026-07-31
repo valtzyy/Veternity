@@ -9,6 +9,7 @@ use App\Models\Payment;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -94,6 +95,9 @@ class PaymentController extends Controller
             'notes' => $validated['notes'] ?? null,
             'status' => 'waiting_payment',
         ]);
+
+        // Invalidate buyer dashboard cache
+        Cache::forget("buyer_dashboard_{$userId}");
 
         return redirect()->route('orders.payment', $order->id);
     }
@@ -185,6 +189,9 @@ class PaymentController extends Controller
             'created_at' => now(),
         ]);
 
+        // Invalidate buyer dashboard cache
+        Cache::forget("buyer_dashboard_{$userId}");
+
         return redirect()->route('negotiations.show', $order->negotiation_id)
             ->with('message', 'Pembayaran berhasil disimulasikan!');
     }
@@ -221,7 +228,7 @@ class PaymentController extends Controller
             abort(403, 'Hanya buyer yang dapat menyelesaikan pesanan.');
         }
 
-        if ($order->status !== 'paid') {
+        if (! in_array($order->status, ['paid', 'processing', 'shipping'])) {
             return back()->withErrors(['message' => 'Pesanan tidak dalam status Pickup. Tidak dapat diselesaikan.']);
         }
 
@@ -236,6 +243,9 @@ class PaymentController extends Controller
             'message' => 'Pesanan telah dikonfirmasi selesai oleh buyer. Terima kasih telah menggunakan ReGuna!',
             'created_at' => now(),
         ]);
+
+        // Invalidate buyer dashboard cache
+        Cache::forget("buyer_dashboard_{$userId}");
 
         return redirect()->route('buyer.orders')
             ->with('message', 'Pesanan berhasil diselesaikan!');
