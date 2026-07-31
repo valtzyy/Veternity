@@ -1,6 +1,6 @@
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, router, usePage } from '@inertiajs/react';
 import { Leaf, ArrowLeft, Printer, CheckCircle2, MapPin, Phone, User, Store, Calendar, CreditCard, ShieldCheck } from 'lucide-react';
 import React from 'react';
 
@@ -33,6 +33,7 @@ interface Order {
     shipping_address: string;
     notes?: string;
     negotiation_id: number;
+    status?: string;
 }
 
 interface Buyer {
@@ -55,6 +56,9 @@ interface Props {
 }
 
 export default function InvoicePage({ invoice, order, product, buyer, seller }: Props) {
+    const { auth } = usePage<any>().props;
+    const isBuyer = auth?.user?.id === buyer?.id;
+
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Dashboard', href: '/dashboard' },
         { title: 'Negosiasi', href: '/negotiations' },
@@ -81,25 +85,44 @@ export default function InvoicePage({ invoice, order, product, buyer, seller }: 
         window.print();
     };
 
+    const handleCompleteOrder = () => {
+        if (window.confirm('Apakah Anda yakin telah menerima dan menyelesaikan pesanan ini?')) {
+            router.patch(route('orders.complete', order.id));
+        }
+    };
+
+    const isCompleted = order.status === 'completed';
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={`Bukti Pembayaran ${invoice.invoice_number}`} />
 
             <div className="mx-auto max-w-[800px] p-6 space-y-6">
                 {/* Actions Header (hidden in print) */}
-                <div className="flex items-center justify-between print:hidden">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 print:hidden">
                     <Link
                         href={route('negotiations.show', order.negotiation_id)}
                         className="inline-flex items-center gap-2 bg-white border border-neutral-200 text-neutral-700 px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-xs hover:bg-neutral-50"
                     >
                         <ArrowLeft className="h-3.5 w-3.5" /> Kembali ke Chat
                     </Link>
-                    <button
-                        onClick={handlePrint}
-                        className="inline-flex items-center gap-2 bg-emerald-800 hover:bg-emerald-900 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-md cursor-pointer"
-                    >
-                        <Printer className="h-3.5 w-3.5" /> Cetak Bukti
-                    </button>
+
+                    <div className="flex items-center gap-2">
+                        {isBuyer && !isCompleted && (
+                            <button
+                                onClick={handleCompleteOrder}
+                                className="inline-flex items-center gap-2 bg-[#2e5a36] hover:bg-[#234529] text-white px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-md cursor-pointer"
+                            >
+                                <CheckCircle2 className="h-4 w-4" /> Selesaikan Pesanan
+                            </button>
+                        )}
+                        <button
+                            onClick={handlePrint}
+                            className="inline-flex items-center gap-2 bg-neutral-800 hover:bg-neutral-900 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-md cursor-pointer"
+                        >
+                            <Printer className="h-3.5 w-3.5" /> Cetak Bukti
+                        </button>
+                    </div>
                 </div>
 
                 {/* Printable Invoice Page */}

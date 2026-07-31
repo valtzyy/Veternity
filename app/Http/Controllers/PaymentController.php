@@ -228,7 +228,7 @@ class PaymentController extends Controller
             abort(403, 'Hanya buyer yang dapat menyelesaikan pesanan.');
         }
 
-        if ($order->status !== 'paid') {
+        if (! in_array($order->status, ['paid', 'processing', 'shipping'])) {
             return back()->withErrors(['message' => 'Pesanan tidak dalam status Pickup. Tidak dapat diselesaikan.']);
         }
 

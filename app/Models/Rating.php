@@ -46,6 +46,14 @@ class Rating extends Model
     }
 
     /**
+     * Relationship: Rating belongs to an order.
+     */
+    public function order(): BelongsTo
+    {
+        return $this->belongsTo(Order::class);
+    }
+
+    /**
      * Relationship: Rating belongs to a product.
      */
     public function product(): BelongsTo

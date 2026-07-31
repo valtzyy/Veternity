@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\ChatMessage;
 use App\Models\Negotiation;
+use App\Services\TransactionLifecycleService;
 use Cloudinary\Cloudinary as CloudinarySdk;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -17,7 +18,8 @@ class ChatMessageController extends Controller
      */
     public function store(Request $request, Negotiation $negotiation): RedirectResponse
     {
-        $userId = Auth::id();
+        $user = Auth::user();
+        $userId = $user->id;
 
         if ($negotiation->buyer_id !== $userId && $negotiation->seller_id !== $userId) {
             abort(403, 'Anda tidak memiliki akses ke negosiasi ini.');
@@ -31,9 +33,19 @@ class ChatMessageController extends Controller
             'image' => 'nullable|image|max:2048',
         ]);
 
+        $status = TransactionLifecycleService::getStatus($negotiation);
+        $isSeller = $user->isSeller();
+        $permissions = $isSeller
+            ? TransactionLifecycleService::getSellerPermissions($status)
+            : TransactionLifecycleService::getBuyerPermissions($status);
+
+        if (! $permissions['can_chat']) {
+            return back()->withErrors(['message' => 'Transaksi ini telah '.$status.'. Anda tidak dapat mengirim pesan lagi.']);
+        }
+
         if ($request->message_type === 'offer') {
-            if ($negotiation->status === 'agreed' || $negotiation->closed_at) {
-                return back()->withErrors(['message' => 'Negosiasi telah selesai. Penawaran baru tidak dapat dibuat.']);
+            if (! $permissions['can_offer']) {
+                return back()->withErrors(['message' => 'Penawaran baru tidak dapat dibuat pada status transaksi saat ini.']);
             }
 
             if (! $request->offer_price || ! $request->offer_quantity) {
@@ -158,14 +170,21 @@ class ChatMessageController extends Controller
      */
     public function counterOffer(Request $request, Negotiation $negotiation, ChatMessage $chatMessage): RedirectResponse
     {
-        $userId = Auth::id();
+        $user = Auth::user();
+        $userId = $user->id;
 
         if ($negotiation->buyer_id !== $userId && $negotiation->seller_id !== $userId) {
             abort(403);
         }
 
-        if ($negotiation->status === 'agreed' || $negotiation->closed_at) {
-            return back()->withErrors(['message' => 'Negosiasi telah selesai.']);
+        $status = TransactionLifecycleService::getStatus($negotiation);
+        $isSeller = $user->isSeller();
+        $permissions = $isSeller
+            ? TransactionLifecycleService::getSellerPermissions($status)
+            : TransactionLifecycleService::getBuyerPermissions($status);
+
+        if (! $permissions['can_offer']) {
+            return back()->withErrors(['message' => 'Penawaran baru tidak dapat dibuat pada status transaksi saat ini.']);
         }
 
         $request->validate([

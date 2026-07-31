@@ -70,4 +70,9 @@ class Order extends Model
     {
         return $this->hasOne(Invoice::class);
     }
+
+    public function rating(): HasOne
+    {
+        return $this->hasOne(Rating::class);
+    }
 }
