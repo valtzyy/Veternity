@@ -7,6 +7,8 @@ use App\Models\Rating;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class RatingController extends Controller
 {
@@ -66,5 +68,46 @@ class RatingController extends Controller
         ]);
 
         return back()->with('message', 'Ulasan berhasil dikirim. Terima kasih!');
+    }
+
+    /**
+     * Display a listing of ratings/reviews received by the seller.
+     */
+    public function sellerReviews(Request $request): Response
+    {
+        $reviews = Rating::with([
+            'product:id,title',
+            'buyer:id,name,profile_photo',
+            'order:id',
+        ])
+            ->where('seller_id', Auth::id())
+            ->latest()
+            ->get();
+
+        return Inertia::render('seller/reviews', [
+            'reviews' => $reviews,
+        ]);
+    }
+
+    /**
+     * Submit or update a reply to a buyer's review.
+     */
+    public function reply(Request $request, Rating $rating): RedirectResponse
+    {
+        // Ensure the logged-in user is the owner of this store
+        if ($rating->seller_id !== Auth::id()) {
+            abort(403, 'Anda tidak diizinkan membalas ulasan ini.');
+        }
+
+        $request->validate([
+            'seller_reply' => 'required|string|max:1000',
+        ]);
+
+        $rating->update([
+            'seller_reply' => $request->input('seller_reply'),
+            'seller_replied_at' => now(),
+        ]);
+
+        return back()->with('message', 'Balasan ulasan berhasil disimpan.');
     }
 }

@@ -1,13 +1,29 @@
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router, usePage } from '@inertiajs/react';
-import { Leaf, MapPin, BadgeCheck, ShieldCheck, Calendar, MessageSquare, CreditCard, ChevronRight, Phone, MessageCircle, Layers, Star, ArrowLeft } from 'lucide-react';
+import { Leaf, MapPin, BadgeCheck, ShieldCheck, Calendar, MessageSquare, CreditCard, ChevronRight, Phone, MessageCircle, Star, ArrowLeft } from 'lucide-react';
 import { useState } from 'react';
+import { useInitials } from '@/hooks/use-initials';
 
 interface ProductImage {
     id: number;
     image_url: string;
     is_primary: boolean;
+}
+
+interface Rating {
+    id: number;
+    rating: number;
+    review: string;
+    seller_reply: string | null;
+    seller_replied_at: string | null;
+    created_at: string;
+    buyer: {
+        id: number;
+        name: string;
+        profile_photo: string | null;
+        avatar: string | null;
+    };
 }
 
 interface Product {
@@ -20,9 +36,18 @@ interface Product {
     unit: string;
     location: string;
     condition: string;
-    seller: { id: number; name: string; is_verified: boolean; address: string | null; profile_photo?: string };
+    seller: { 
+        id: number; 
+        name: string; 
+        is_verified: boolean; 
+        address: string | null; 
+        profile_photo?: string;
+        average_rating?: string | number;
+        total_reviews?: number;
+    };
     category: { id: number; name: string } | null;
     images: ProductImage[];
+    ratings?: Rating[];
     knowledge?: {
         province?: string;
         availability?: string;
@@ -38,8 +63,35 @@ interface Props {
 }
 
 export default function Show({ product, relatedProducts, isFavorited }: Props) {
-    const { auth } = usePage().props as any;
+    const { auth } = usePage().props as unknown as { auth: { user: { id: number; name: string; role: string } | null } };
     const currentUser = auth?.user;
+    const getInitials = useInitials();
+
+    const ratings = product.ratings || [];
+    const totalRatings = ratings.length;
+    const avgRating = totalRatings > 0 
+        ? (ratings.reduce((acc, curr) => acc + curr.rating, 0) / totalRatings).toFixed(1)
+        : '0.0';
+
+    // Count star distribution
+    const starCounts = [0, 0, 0, 0, 0]; // index 0 for 1 star, 4 for 5 stars
+    ratings.forEach(r => {
+        const starIdx = Math.min(5, Math.max(1, r.rating)) - 1;
+        starCounts[starIdx]++;
+    });
+
+    const renderStars = (count: number) => {
+        return (
+            <div className="flex gap-0.5">
+                {[1, 2, 3, 4, 5].map((s) => (
+                    <Star 
+                        key={s} 
+                        className={`h-4.5 w-4.5 ${s <= count ? 'fill-amber-400 text-amber-400' : 'text-neutral-200'}`} 
+                    />
+                ))}
+            </div>
+        );
+    };
 
     const images = product.images.length > 0 
         ? product.images 
@@ -274,6 +326,109 @@ export default function Show({ product, relatedProducts, isFavorited }: Props) {
                                 </div>
                             </div>
                         </div>
+
+                        {/* Reviews Section */}
+                        <div className="bg-white border border-neutral-100 shadow-sm rounded-3xl p-6 sm:p-8">
+                            <h2 className="text-xl font-bold text-neutral-900 mb-6">Ulasan Pembeli ({totalRatings})</h2>
+                            
+                            {totalRatings === 0 ? (
+                                <div className="text-center py-10 bg-neutral-50/50 rounded-2xl border border-dashed border-neutral-200">
+                                    <Star className="h-10 w-10 text-neutral-300 mx-auto mb-2" />
+                                    <p className="text-sm text-neutral-500 font-semibold">Belum ada ulasan untuk produk ini.</p>
+                                </div>
+                            ) : (
+                                <div className="space-y-6">
+                                    {/* Stats header block */}
+                                    <div className="flex flex-col md:flex-row items-center gap-6 bg-[#f6faf6]/50 border border-neutral-100 rounded-2xl p-6">
+                                        <div className="text-center md:border-r md:border-neutral-100 md:pr-8 flex-shrink-0">
+                                            <div className="text-4xl font-black text-neutral-900">{avgRating}</div>
+                                            <div className="flex justify-center my-1.5">{renderStars(Math.round(Number(avgRating)))}</div>
+                                            <div className="text-xs text-neutral-400 font-bold uppercase tracking-wider">Rata-rata Rating</div>
+                                        </div>
+                                        
+                                        {/* Progress bars */}
+                                        <div className="flex-1 w-full space-y-2">
+                                            {[5, 4, 3, 2, 1].map((star) => {
+                                                const count = starCounts[star - 1];
+                                                const pct = totalRatings > 0 ? (count / totalRatings) * 100 : 0;
+                                                return (
+                                                    <div key={star} className="flex items-center gap-3 text-xs font-semibold">
+                                                        <span className="w-3 text-neutral-500">{star}</span>
+                                                        <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400 flex-shrink-0" />
+                                                        <div className="flex-1 h-2 bg-neutral-100 rounded-full overflow-hidden">
+                                                            <div className="h-full bg-amber-400 rounded-full" style={{ width: `${pct}%` }}></div>
+                                                        </div>
+                                                        <span className="w-8 text-right text-neutral-400">{count}</span>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                    
+                                    {/* Reviews List */}
+                                    <div className="divide-y divide-neutral-100 pt-2">
+                                        {ratings.map((rating) => {
+                                            const buyerAvatar = rating.buyer.profile_photo || rating.buyer.avatar;
+                                            return (
+                                                <div key={rating.id} className="py-6 first:pt-0 last:pb-0">
+                                                    <div className="flex items-start gap-4">
+                                                        {/* Avatar */}
+                                                        <div className="h-10 w-10 rounded-full overflow-hidden bg-neutral-200 flex-shrink-0">
+                                                            {buyerAvatar ? (
+                                                                <img src={buyerAvatar} alt={rating.buyer.name} className="w-full h-full object-cover" />
+                                                            ) : (
+                                                                <div className="w-full h-full flex items-center justify-center bg-[#e6f4e9] text-[#2e5a36] font-bold text-sm uppercase">
+                                                                    {getInitials(rating.buyer.name)}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                        
+                                                        {/* Details */}
+                                                        <div className="flex-1 space-y-1">
+                                                            <div className="flex items-center justify-between">
+                                                                <p className="font-bold text-neutral-900 text-sm">{rating.buyer.name}</p>
+                                                                <span className="text-[10px] font-bold text-neutral-400 uppercase">
+                                                                    {new Date(rating.created_at).toLocaleDateString('id-ID', {
+                                                                        day: 'numeric',
+                                                                        month: 'short',
+                                                                        year: 'numeric',
+                                                                    })}
+                                                                </span>
+                                                            </div>
+                                                            <div className="mb-2">{renderStars(rating.rating)}</div>
+                                                            <p className="text-neutral-700 text-sm whitespace-pre-line leading-relaxed">
+                                                                {rating.review}
+                                                            </p>
+                                                            
+                                                            {/* Seller Reply */}
+                                                            {rating.seller_reply && (
+                                                                <div className="mt-4 bg-[#f6faf6] border-l-4 border-[#2e5a36] rounded-r-2xl p-4 space-y-1">
+                                                                    <div className="flex items-center justify-between text-xs font-bold">
+                                                                        <span className="text-[#2e5a36]">Balasan Penjual</span>
+                                                                        {rating.seller_replied_at && (
+                                                                            <span className="text-neutral-400 font-medium">
+                                                                                {new Date(rating.seller_replied_at).toLocaleDateString('id-ID', {
+                                                                                    day: 'numeric',
+                                                                                    month: 'short',
+                                                                                    year: 'numeric',
+                                                                                })}
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                    <p className="text-neutral-700 text-xs leading-relaxed whitespace-pre-line">
+                                                                        {rating.seller_reply}
+                                                                    </p>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
                     </div>
 
                     {/* Right: Seller Profile Card */}
@@ -300,11 +455,13 @@ export default function Show({ product, relatedProducts, isFavorited }: Props) {
                                 <div className="grid grid-cols-3 gap-2 w-full border-b border-t border-neutral-100 py-4 mb-6">
                                     <div>
                                         <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest block mb-1">Rating</span>
-                                        <span className="text-sm font-extrabold text-neutral-900">4.9</span>
+                                        <span className="text-sm font-extrabold text-neutral-900">
+                                            {product.seller.average_rating ? Number(product.seller.average_rating).toFixed(1) : '0.0'}
+                                        </span>
                                     </div>
                                     <div className="border-l border-neutral-100">
-                                        <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest block mb-1">Transaksi</span>
-                                        <span className="text-sm font-extrabold text-neutral-900">156</span>
+                                        <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest block mb-1">Ulasan</span>
+                                        <span className="text-sm font-extrabold text-neutral-900">{product.seller.total_reviews || 0}</span>
                                     </div>
                                     <div className="border-l border-neutral-100">
                                         <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest block mb-1">Bergabung</span>
