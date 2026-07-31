@@ -33,41 +33,133 @@ class DashboardController extends Controller
                 ->where('status', 'pending_review')
                 ->count();
 
-            $sellerNegotiations = Negotiation::with(['product', 'buyer', 'order.invoice'])
+            // 1. Total Revenue (Completed & processing orders)
+            $totalRevenue = Order::where('seller_id', $user->id)
+                ->whereIn('status', ['paid', 'processing', 'shipping', 'completed'])
+                ->selectRaw('SUM(final_price * final_quantity) as total')
+                ->value('total') ?? 0;
+
+            // 2. Revenue growth comparison (This month vs Last month)
+            $revenueThisMonth = Order::where('seller_id', $user->id)
+                ->whereIn('status', ['paid', 'processing', 'shipping', 'completed'])
+                ->whereMonth('created_at', now()->month)
+                ->whereYear('created_at', now()->year)
+                ->selectRaw('SUM(final_price * final_quantity) as total')
+                ->value('total') ?? 0;
+
+            $revenueLastMonth = Order::where('seller_id', $user->id)
+                ->whereIn('status', ['paid', 'processing', 'shipping', 'completed'])
+                ->whereMonth('created_at', now()->subMonth()->month)
+                ->whereYear('created_at', now()->subMonth()->year)
+                ->selectRaw('SUM(final_price * final_quantity) as total')
+                ->value('total') ?? 0;
+
+            $growth = $revenueLastMonth > 0 ? round((($revenueThisMonth - $revenueLastMonth) / $revenueLastMonth) * 100) : 100;
+            $revenueGrowthText = ($growth >= 0 ? '+' : '').$growth.'% bulan ini';
+
+            // 3. Active negotiations
+            $negotiationCount = Negotiation::where('seller_id', $user->id)
+                ->whereIn('status', ['pending', 'negotiating'])
+                ->count();
+
+            // Count negotiations that have unread/incoming messages from buyers
+            $negotiationUnread = 0;
+            $sellerNegos = Negotiation::with(['messages' => function ($q) {
+                $q->latest('created_at')->limit(1);
+            }])
                 ->where('seller_id', $user->id)
-                ->latest('updated_at')
-                ->limit(5)
+                ->whereIn('status', ['pending', 'negotiating'])
                 ->get();
+            foreach ($sellerNegos as $nego) {
+                $lastMessage = $nego->messages->first();
+                if ($lastMessage && $lastMessage->sender_id !== $user->id) {
+                    $negotiationUnread++;
+                }
+            }
 
-            $recentOrders = $sellerNegotiations->map(function ($item) use ($user) {
-                $formatted = TransactionLifecycleService::formatTransaction($item, $user);
+            // 4. Completed orders
+            $completedOrders = Order::where('seller_id', $user->id)
+                ->where('status', 'completed')
+                ->count();
+            $completedOrdersThisMonth = Order::where('seller_id', $user->id)
+                ->where('status', 'completed')
+                ->whereMonth('created_at', now()->month)
+                ->whereYear('created_at', now()->year)
+                ->count();
+            $completedOrdersThisMonthText = $completedOrdersThisMonth.' selesai bulan ini';
 
-                return [
-                    'id' => $item->id,
-                    'customer' => $item->buyer->name ?? 'Customer',
-                    'detail' => ($item->product->title ?? 'Produk Limbah').' - '.$formatted['qty'],
-                    'status' => $formatted['status'],
-                    'status_color' => match ($formatted['status']) {
-                        'Selesai' => 'success',
-                        'Pickup' => 'blue',
-                        'Pembayaran', 'Negosiasi' => 'warning',
-                        default => 'secondary',
-                    },
-                    'action_url' => $formatted['action_url'],
+            // 5. Monthly Revenue Chart (Last 7 months)
+            $monthlyRevenue = [];
+            $monthlyRevenueTotal = 0;
+            for ($i = 6; $i >= 0; $i--) {
+                $date = now()->startOfMonth()->subMonths($i);
+                $monthName = $date->translatedFormat('M');
+                $monthNum = $date->month;
+                $yearNum = $date->year;
+
+                $sum = Order::where('seller_id', $user->id)
+                    ->whereIn('status', ['paid', 'processing', 'shipping', 'completed'])
+                    ->whereMonth('created_at', $monthNum)
+                    ->whereYear('created_at', $yearNum)
+                    ->selectRaw('SUM(final_price * final_quantity) as total')
+                    ->value('total') ?? 0;
+
+                $monthlyRevenue[] = [
+                    'month' => $monthName,
+                    'amount' => (int) $sum,
                 ];
-            });
+                $monthlyRevenueTotal += $sum;
+            }
 
             $stats = [
-                'total_revenue' => 9400000,
-                'revenue_growth' => '+18% bulan ini',
+                'total_revenue' => (int) $totalRevenue,
+                'revenue_growth' => $revenueGrowthText,
                 'active_products' => $activeProducts,
                 'pending_products' => $pendingProducts,
-                'negotiation_count' => count($sellerNegotiations) ?: 4,
-                'negotiation_unread' => 3,
-                'completed_orders' => 23,
-                'completed_orders_this_month' => 'bulan ini',
-                'monthly_revenue_total' => 46600000,
+                'negotiation_count' => $negotiationCount,
+                'negotiation_unread' => $negotiationUnread,
+                'completed_orders' => $completedOrders,
+                'completed_orders_this_month' => $completedOrdersThisMonthText,
+                'monthly_revenue_total' => (int) $monthlyRevenueTotal,
+                'monthly_revenue' => $monthlyRevenue,
             ];
+
+            // 6. Recent Orders List
+            $recentOrders = Order::with(['buyer', 'negotiation.product'])
+                ->where('seller_id', $user->id)
+                ->latest()
+                ->take(4)
+                ->get()
+                ->map(function ($order) {
+                    $statusColor = 'secondary';
+                    $statusName = 'Menunggu';
+
+                    if ($order->status === 'waiting_payment') {
+                        $statusColor = 'warning';
+                        $statusName = 'Pembayaran';
+                    } elseif ($order->status === 'paid') {
+                        $statusColor = 'blue';
+                        $statusName = 'Pickup';
+                    } elseif ($order->status === 'processing' || $order->status === 'shipping') {
+                        $statusColor = 'blue';
+                        $statusName = 'Diproses';
+                    } elseif ($order->status === 'completed') {
+                        $statusColor = 'success';
+                        $statusName = 'Selesai';
+                    } elseif ($order->status === 'cancelled') {
+                        $statusColor = 'secondary';
+                        $statusName = 'Batal';
+                    }
+
+                    return [
+                        'id' => $order->id,
+                        'negotiation_id' => $order->negotiation_id,
+                        'customer' => $order->buyer->name ?? 'Pembeli',
+                        'detail' => ($order->negotiation->product->title ?? 'Produk').' - '.$order->final_quantity.' '.($order->negotiation->product->unit ?? 'kg'),
+                        'status' => $statusName,
+                        'status_color' => $statusColor,
+                    ];
+                });
 
             return Inertia::render('dashboard', [
                 'stats' => $stats,
@@ -109,7 +201,7 @@ class DashboardController extends Controller
         // 5. Expense History (Last 6 months)
         $monthlyExpenses = [];
         for ($i = 5; $i >= 0; $i--) {
-            $date = now()->subMonths($i);
+            $date = now()->startOfMonth()->subMonths($i);
             $monthName = $date->translatedFormat('M');
             $monthNum = $date->month;
             $yearNum = $date->year;
