@@ -1,3 +1,4 @@
+import AppLayout from '@/layouts/app-layout';
 import { type SharedData } from '@/types';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
 import {
@@ -241,51 +242,18 @@ export default function NegotiationShow({ negotiation, product, buyer, seller, c
         return 'Rp ' + Number(val).toLocaleString('id-ID');
     };
 
+    const breadcrumbs = [
+        { title: 'Dashboard', href: '/dashboard' },
+        { title: isBuyer ? 'Pesanan Saya' : 'Pesanan', href: isBuyer ? '/buyer/orders' : '/negotiations' },
+        { title: 'Chat Negosiasi', href: '#' },
+    ];
+
     return (
-        <div className="flex min-h-screen flex-col bg-[#F8FAFC] text-slate-800 antialiased">
+        <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={`Negosiasi - ${product.title}`} />
 
-            {/* Header */}
-            <header className="sticky top-0 z-50 border-b border-slate-200 bg-white">
-                <div className="mx-auto flex h-20 max-w-[1440px] items-center justify-between px-6">
-                    {/* Logo */}
-                    <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-600 text-white shadow-xs">
-                            <Leaf className="h-6 w-6" />
-                        </div>
-                        <span className="text-2xl font-bold tracking-tight text-slate-900">ReGuna</span>
-                    </div>
-
-                    {/* Navigation Links */}
-                    <nav className="hidden items-center gap-8 md:flex">
-                        <Link href="/dashboard" className="font-medium text-slate-600 transition-colors hover:text-emerald-600">
-                            Home
-                        </Link>
-                        <Link href="#" className="font-medium text-slate-600 transition-colors hover:text-emerald-600">
-                            Marketplace
-                        </Link>
-                        <Link href="#" className="font-medium text-slate-600 transition-colors hover:text-emerald-600">
-                            About
-                        </Link>
-                        <Link href="#" className="font-medium text-slate-600 transition-colors hover:text-emerald-600">
-                            How It Works
-                        </Link>
-                    </nav>
-
-                    {/* Navigation / User links */}
-                    <div className="flex items-center gap-4">
-                        <Link href={route('negotiations.index')} className="text-sm font-semibold text-slate-700 hover:text-slate-900">
-                            Pesanan Saya
-                        </Link>
-                        <span className="text-xs font-semibold text-emerald-700">
-                            {authUser?.name} ({isBuyer ? 'Buyer' : 'Seller'})
-                        </span>
-                    </div>
-                </div>
-            </header>
-
             {/* Main Content Container (3 Columns Layout matching Figma) */}
-            <main className="mx-auto grid w-full max-w-[1440px] flex-1 grid-cols-1 items-stretch gap-6 p-6 lg:grid-cols-12">
+            <div className="grid w-full flex-1 grid-cols-1 items-slate-800 gap-6 lg:grid-cols-12">
                 {/* Left Sidebar: Product & Transaction Info (3 Cols) */}
                 <aside className="flex flex-col gap-4 lg:col-span-3">
                     {/* Product Card */}
@@ -479,13 +447,13 @@ export default function NegotiationShow({ negotiation, product, buyer, seller, c
                             </>
                         )}
 
-                        <button
+                        {/* <button
                             type="button"
                             className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50"
                         >
                             <ShieldAlert className="h-4 w-4 text-slate-400" />
                             Laporkan Masalah
-                        </button>
+                        </button> */}
                     </div>
                 </aside>
 
@@ -819,7 +787,7 @@ export default function NegotiationShow({ negotiation, product, buyer, seller, c
                         </div>
                     </div>
                 </aside>
-            </main>
+            </div>
 
             {/* Offer Modal */}
             {isOfferModalOpen && (
@@ -894,6 +862,6 @@ export default function NegotiationShow({ negotiation, product, buyer, seller, c
                     </div>
                 </div>
             )}
-        </div>
+        </AppLayout>
     );
 }
