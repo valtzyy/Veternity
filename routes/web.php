@@ -30,6 +30,8 @@ Route::middleware(['auth'])->group(function () {
     // Seller routes
     Route::middleware(['seller'])->prefix('seller')->name('seller.')->group(function () {
         Route::resource('products', ProductController::class);
+        Route::get('/reviews', [RatingController::class, 'sellerReviews'])->name('reviews.index');
+        Route::post('/reviews/{rating}/reply', [RatingController::class, 'reply'])->name('reviews.reply');
     });
 
     // Negotiation routes

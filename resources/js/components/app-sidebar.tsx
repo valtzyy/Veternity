@@ -3,7 +3,7 @@ import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from '@/components/ui/sidebar';
 import { type NavItem } from '@/types';
-import { Link, usePage } from '@inertiajs/react';
+import { usePage } from '@inertiajs/react';
 import { BookOpen, Folder, LayoutGrid, Users, ClipboardCheck, ShoppingBag, MessageSquare, Star, UserCircle2 } from 'lucide-react';
 import AppLogo from './app-logo';
 
@@ -21,7 +21,11 @@ const footerNavItems: NavItem[] = [
 ];
 
 export function AppSidebar() {
-    const { auth, unread_negotiations_count, active_orders_count } = usePage<any>().props;
+    const { auth, unread_negotiations_count, active_orders_count } = usePage().props as unknown as {
+        auth: { user: { role: string } };
+        unread_negotiations_count?: number;
+        active_orders_count?: number;
+    };
     const userRole = auth?.user?.role;
     const { toggleSidebar } = useSidebar();
 
@@ -77,6 +81,11 @@ export function AppSidebar() {
                 badgeColor: 'bg-amber-50', // Yellow badge
             },
             {
+                title: 'Ulasan Pembeli',
+                url: '/seller/reviews',
+                icon: Star,
+            },
+            {
                 title: 'Analitik',
                 url: '/seller/analytics',
                 icon: LayoutGrid,
@@ -118,8 +127,6 @@ export function AppSidebar() {
             }
         );
     }
-
-    const homeUrl = userRole === 'admin' ? '/admin/dashboard' : '/dashboard';
 
     return (
         <Sidebar collapsible="icon" variant="inset">

@@ -96,7 +96,14 @@ class HomeController extends Controller
      */
     public function show(Product $product): Response
     {
-        $product->load(['seller:id,name,address', 'category:id,name', 'images']);
+        $product->load([
+            'seller:id,name,address,profile_photo',
+            'category:id,name',
+            'images',
+            'ratings' => function ($query) {
+                $query->with('buyer:id,name,profile_photo')->latest();
+            },
+        ]);
 
         // Fetch related products (same category, excluding current product)
         $relatedProducts = Product::with(['seller:id,name', 'category:id,name', 'images'])
