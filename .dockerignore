@@ -6,23 +6,37 @@ storage/framework/cache/*
 storage/framework/sessions/*
 storage/framework/views/*
 storage/logs/*
-*.env*
+.env
+.env.backup
+.env.production
+.env.local
+.env.testing
+.env.development
 .rr.yml
 rr
 frankenphp
-vendor
 
-# 2. Ignore common files/directories we don't need
+# 2. Dependencies
+vendor/
+node_modules/
+
+# 3. Version control
+.git/
+.github/
+.gitignore
+.gitattributes
+
+# 4. Misc and temporary files
 fly.toml
-.vscode
-.idea
-**/*node_modules
-**.git
-**.gitignore
-**.gitattributes
-**.sass-cache
-**/*~
-**/*.log
-**/.DS_Store
-**/Thumbs.db
+.vscode/
+.idea/
+.sass-cache/
+*~
+*.log
+.DS_Store
+Thumbs.db
 public/hot
+public/storage
+.phpunit.result.cache
+.zed/
+.agents/
