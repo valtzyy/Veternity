@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Category;
 use App\Models\Product;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
@@ -105,10 +106,13 @@ class HomeController extends Controller
             ->take(3)
             ->get();
 
+        /** @var User|null $user */
+        $user = Auth::user();
+
         return Inertia::render('products/show', [
             'product' => $product,
             'relatedProducts' => $relatedProducts,
-            'isFavorited' => Auth::check() ? Auth::user()->favorites()->where('product_id', $product->id)->exists() : false,
+            'isFavorited' => $user ? $user->favorites()->where('product_id', $product->id)->exists() : false,
         ]);
     }
 }
