@@ -118,7 +118,7 @@ class HomeController extends Controller
     public function show(Product $product): Response
     {
         $product->load([
-            'seller:id,name,address,profile_photo',
+            'seller:id,name,address,profile_photo,average_rating,total_reviews',
             'category:id,name',
             'images',
             'ratings' => function ($query) {
