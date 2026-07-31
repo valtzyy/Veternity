@@ -13,6 +13,7 @@ import {
     Send,
     ShieldAlert,
     ShoppingBag,
+    Star,
     ThumbsDown,
     ThumbsUp,
     X,
@@ -73,6 +74,7 @@ interface Order {
     final_quantity: number;
     status: string;
     invoice?: Invoice;
+    rating?: any;
 }
 
 interface Negotiation {
@@ -379,13 +381,38 @@ export default function NegotiationShow({ negotiation, product, buyer, seller, c
                         <h3 className="mb-1 text-xs font-bold tracking-wider text-slate-400 uppercase">TINDAKAN CEPAT</h3>
 
                         {isSeller ? (
-                            <div className="rounded-2xl border border-slate-100 bg-slate-50 p-3 text-center text-xs leading-relaxed font-semibold text-slate-500">
-                                Sesi percakapan transaksi. Semua rincian tersimpan otomatis.
+                            <div className="flex flex-col gap-2">
+                                {negotiation.order?.invoice && (
+                                    <Link
+                                        href={route('invoices.show', negotiation.order.invoice.id)}
+                                        className="flex w-full items-center justify-center gap-2 rounded-full border border-[#2e5a36]/20 bg-[#f0f7f1] px-4 py-3 text-sm font-semibold text-[#2e5a36] shadow-xs transition-all hover:bg-emerald-50"
+                                    >
+                                        <ShoppingBag className="h-4 w-4" />
+                                        Lihat Invoice
+                                    </Link>
+                                )}
+                                <div className="rounded-2xl border border-slate-100 bg-slate-50 p-3 text-center text-xs leading-relaxed font-semibold text-slate-500">
+                                    Sesi percakapan transaksi. Semua rincian tersimpan otomatis.
+                                </div>
                             </div>
                         ) : (
                             <>
                                 {negotiation.order ? (
-                                    negotiation.order.status === 'paid' || negotiation.order.status === 'shipping' ? (
+                                    negotiation.order.status === 'completed' ? (
+                                        negotiation.order.invoice ? (
+                                            <Link
+                                                href={route('invoices.show', negotiation.order.invoice.id)}
+                                                className="flex w-full items-center justify-center gap-2 rounded-full border border-[#2e5a36]/20 bg-[#f0f7f1] px-4 py-3 text-sm font-semibold text-[#2e5a36] shadow-xs transition-all hover:bg-emerald-50"
+                                            >
+                                                <ShoppingBag className="h-4 w-4" />
+                                                Lihat Invoice
+                                            </Link>
+                                        ) : (
+                                            <div className="rounded-2xl border border-slate-100 bg-slate-50 p-3 text-center text-xs leading-relaxed font-semibold text-slate-500">
+                                                Transaksi telah selesai.
+                                            </div>
+                                        )
+                                    ) : negotiation.order.status === 'paid' || negotiation.order.status === 'shipping' || negotiation.order.status === 'processing' ? (
                                         negotiation.order.invoice ? (
                                             <Link
                                                 href={route('invoices.show', negotiation.order.invoice.id)}
@@ -683,27 +710,32 @@ export default function NegotiationShow({ negotiation, product, buyer, seller, c
                     )}
 
                     {/* Chat Input Bar */}
-                    <form onSubmit={handleSendMessage} className="flex items-center gap-2 border-t border-slate-100 bg-white p-4">
-                        <input
-                            type="file"
-                            ref={fileInputRef}
-                            accept="image/*"
-                            onChange={handleImageSelect}
-                            className="hidden"
-                        />
+                    {lifecycle && !lifecycle.can_chat ? (
+                        <div className="border-t border-slate-100 bg-slate-100 p-4 text-center text-xs font-semibold text-slate-600">
+                            Sesi percakapan ini telah selesai dan disimpan sebagai arsip transaksi.
+                        </div>
+                    ) : (
+                        <form onSubmit={handleSendMessage} className="flex items-center gap-2 border-t border-slate-100 bg-white p-4">
+                            <input
+                                type="file"
+                                ref={fileInputRef}
+                                accept="image/*"
+                                onChange={handleImageSelect}
+                                className="hidden"
+                            />
 
-                        <button
-                            type="button"
-                            disabled={negotiation.status === 'agreed'}
-                            onClick={() => {
-                                setCounterTargetMessage(null);
-                                setIsOfferModalOpen(true);
-                            }}
-                            className="flex items-center gap-1.5 rounded-full border border-emerald-200/50 bg-emerald-50 px-3.5 py-2.5 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-100 disabled:opacity-40"
-                        >
-                            <DollarSign className="h-4 w-4" />
-                            Tawar
-                        </button>
+                            <button
+                                type="button"
+                                disabled={lifecycle ? !lifecycle.can_offer : negotiation.status === 'agreed'}
+                                onClick={() => {
+                                    setCounterTargetMessage(null);
+                                    setIsOfferModalOpen(true);
+                                }}
+                                className="flex items-center gap-1.5 rounded-full border border-emerald-200/50 bg-emerald-50 px-3.5 py-2.5 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-100 disabled:opacity-40"
+                            >
+                                <DollarSign className="h-4 w-4" />
+                                Tawar
+                            </button>
 
                         <button
                             type="button"
@@ -732,6 +764,7 @@ export default function NegotiationShow({ negotiation, product, buyer, seller, c
                             <Send className="h-5 w-5 translate-x-0.5 -translate-y-0.5" />
                         </button>
                     </form>
+                    )}
                 </section>
 
                 {/* Right Sidebar: Active Conversations & Floating Actions (3 Cols) */}
@@ -861,7 +894,6 @@ export default function NegotiationShow({ negotiation, product, buyer, seller, c
                     </div>
                 </div>
             )}
-            
         </div>
     );
 }

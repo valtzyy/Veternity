@@ -209,11 +209,6 @@ export default function NegotiationIndex({ transactions = [] }: IndexProps) {
                                             <div>
                                                 <div className="flex items-center gap-2 flex-wrap">
                                                     <h3 className="text-sm font-bold text-neutral-900">{order.name}</h3>
-                                                    {order.nego && (
-                                                        <span className="bg-amber-50 text-amber-700 border border-amber-200/60 px-2 py-0.5 rounded-md text-[10px] font-bold">
-                                                            🏷 Nego
-                                                        </span>
-                                                    )}
                                                 </div>
                                                 <p className="text-xs text-neutral-500 font-medium mt-0.5 flex items-center gap-1">
                                                     <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 inline" />
@@ -271,7 +266,7 @@ export default function NegotiationIndex({ transactions = [] }: IndexProps) {
                                         </div>
 
                                         <div className="flex items-center gap-2">
-                                            {/* Primary Action Button based on status & role */}
+                                            {/* Action Buttons based on role */}
                                             {isSeller ? (
                                                 <Link
                                                     href={`/negotiations/${order.negotiation_id}`}
@@ -326,16 +321,16 @@ export default function NegotiationIndex({ transactions = [] }: IndexProps) {
                                                             Lihat Chat
                                                         </Link>
                                                     )}
+
+                                                    {/* Detail Button for Buyer only */}
+                                                    <Link
+                                                        href={order.detail_url || `/products/${order.id}`}
+                                                        className="border border-neutral-200 text-neutral-600 bg-white hover:bg-neutral-50 px-4 py-1.5 rounded-full text-xs font-bold shadow-2xs"
+                                                    >
+                                                        Detail
+                                                    </Link>
                                                 </>
                                             )}
-
-                                            {/* Crucial Requirement: Detail Button ALWAYS Present for all statuses & roles */}
-                                            <Link
-                                                href={order.detail_url || `/products/${order.id}`}
-                                                className="border border-neutral-200 text-neutral-600 bg-white hover:bg-neutral-50 px-4 py-1.5 rounded-full text-xs font-bold shadow-2xs"
-                                            >
-                                                Detail
-                                            </Link>
                                         </div>
                                     </div>
                                 </div>

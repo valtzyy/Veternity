@@ -84,11 +84,11 @@ class TransactionLifecycleService
                 'can_chat' => true,
                 'can_offer' => true,
             ],
-            'Pembayaran', 'Pickup', 'Selesai' => [
+            'Pembayaran', 'Pickup' => [
                 'can_chat' => true,
                 'can_offer' => false,
             ],
-            'Batal' => [
+            'Selesai', 'Batal' => [
                 'can_chat' => false,
                 'can_offer' => false,
             ],

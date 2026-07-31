@@ -1,10 +1,10 @@
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
-import { Head, Link, usePage } from '@inertiajs/react';
+import { Head, Link, router, usePage } from '@inertiajs/react';
 import {
     TrendingUp, Package, MessageSquare, CheckCircle, Upload, ArrowUpRight,
     Calendar, Wallet, ShoppingBag, Search, Leaf, BadgeCheck, MessageCircle, Star,
-    Clock, Handshake, CreditCard, Truck, CheckCircle2
+    Clock, Handshake, CreditCard, Truck, CheckCircle2, X
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -85,6 +85,69 @@ export default function Dashboard({ stats, recentOrders, transactions = [], buye
     const { auth } = usePage<any>().props;
     const isSeller = auth?.user?.role === 'seller';
     const [orderTab, setOrderTab] = useState('Semua');
+
+    // Rating modal state
+    const [isRatingModalOpen, setIsRatingModalOpen] = useState(false);
+    const [selectedRatingOrder, setSelectedRatingOrder] = useState<TransactionItem | null>(null);
+    const [rating, setRating] = useState(0);
+    const [hoverRating, setHoverRating] = useState(0);
+    const [reviewText, setReviewText] = useState('');
+    const [selectedTags, setSelectedTags] = useState<string[]>([]);
+    const [isSubmittingRating, setIsSubmittingRating] = useState(false);
+
+    const availableTags = [
+        'Produk sesuai deskripsi',
+        'Supplier responsif',
+        'Kualitas bagus',
+        'Pengiriman cepat',
+        'Harga wajar',
+        'Kemasan rapi',
+    ];
+
+    const toggleTag = (tag: string) => {
+        if (selectedTags.includes(tag)) {
+            setSelectedTags(selectedTags.filter((t) => t !== tag));
+        } else {
+            setSelectedTags([...selectedTags, tag]);
+        }
+    };
+
+    const handleOpenRatingModal = (item: TransactionItem) => {
+        setSelectedRatingOrder(item);
+        setRating(0);
+        setReviewText('');
+        setSelectedTags([]);
+        setIsRatingModalOpen(true);
+    };
+
+    const handleCloseRatingModal = () => {
+        setIsRatingModalOpen(false);
+        setSelectedRatingOrder(null);
+    };
+
+    const handleSubmitRating = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (rating === 0 || !selectedRatingOrder?.order_id) return;
+
+        setIsSubmittingRating(true);
+        router.post(
+            route('orders.ratings.store', selectedRatingOrder.order_id),
+            {
+                rating: rating,
+                review: reviewText,
+                tags: selectedTags,
+            },
+            {
+                onSuccess: () => {
+                    handleCloseRatingModal();
+                    setIsSubmittingRating(false);
+                },
+                onError: () => {
+                    setIsSubmittingRating(false);
+                },
+            }
+        );
+    };
 
     const previewTransactions = transactions
         .filter((t) => orderTab === 'Semua' || t.status === orderTab)
@@ -323,11 +386,6 @@ export default function Dashboard({ stats, recentOrders, transactions = [], buye
                                                 <div>
                                                     <div className="flex items-center gap-2 flex-wrap">
                                                         <h4 className="text-sm font-bold text-neutral-900">{order.name}</h4>
-                                                        {order.nego && (
-                                                            <span className="bg-amber-50 text-amber-700 border border-amber-200/60 px-1.5 py-0.5 rounded text-[10px] font-bold">
-                                                                🏷 Nego
-                                                            </span>
-                                                        )}
                                                     </div>
                                                     <p className="text-xs text-neutral-400 mt-0.5">{order.seller} • {order.qty}</p>
                                                 </div>
@@ -415,12 +473,29 @@ export default function Dashboard({ stats, recentOrders, transactions = [], buye
                                                                 Bayar Sekarang
                                                             </Link>
                                                         )}
-                                                        {(order.status === 'Negosiasi' || order.status === 'Menunggu' || order.status === 'Selesai') && (
+                                                        {order.status === 'Selesai' && !order.has_reviewed && (
+                                                            <button
+                                                                onClick={() => handleOpenRatingModal(order)}
+                                                                className="border border-neutral-200 text-neutral-700 bg-white hover:bg-neutral-50 px-3 py-1 rounded-full text-xs font-bold inline-flex items-center gap-1 cursor-pointer transition-colors"
+                                                            >
+                                                                <Star className="h-3.5 w-3.5 text-amber-500 fill-amber-500" />
+                                                                Beri Ulasan
+                                                            </button>
+                                                        )}
+                                                        {order.status === 'Selesai' && order.has_reviewed && (
                                                             <Link
                                                                 href={`/negotiations/${order.negotiation_id}`}
                                                                 className="border border-amber-300 text-amber-800 bg-amber-50 hover:bg-amber-100 px-3 py-1 rounded-full text-xs font-bold transition-colors cursor-pointer"
                                                             >
-                                                                {order.status === 'Selesai' && !order.has_reviewed ? 'Beri Ulasan' : 'Lihat Chat'}
+                                                                Lihat Chat
+                                                            </Link>
+                                                        )}
+                                                        {(order.status === 'Negosiasi' || order.status === 'Menunggu') && (
+                                                            <Link
+                                                                href={`/negotiations/${order.negotiation_id}`}
+                                                                className="border border-amber-300 text-amber-800 bg-amber-50 hover:bg-amber-100 px-3 py-1 rounded-full text-xs font-bold transition-colors cursor-pointer"
+                                                            >
+                                                                Lihat Chat
                                                             </Link>
                                                         )}
                                                         {order.status === 'Pickup' && (
@@ -477,6 +552,93 @@ export default function Dashboard({ stats, recentOrders, transactions = [], buye
                         </div>
                     </div>
                 </div>
+
+                {/* Rating Modal */}
+                {isRatingModalOpen && selectedRatingOrder && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4">
+                        <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-xl space-y-5 border border-neutral-100">
+                            <div className="flex items-center justify-between">
+                                <h3 className="text-base font-extrabold text-[#2e5a36]">Berikan Ulasan</h3>
+                                <button
+                                    onClick={handleCloseRatingModal}
+                                    className="rounded-full p-1 text-neutral-400 hover:bg-neutral-100 cursor-pointer"
+                                >
+                                    <X className="h-4 w-4" />
+                                </button>
+                            </div>
+
+                            <form onSubmit={handleSubmitRating} className="space-y-4">
+                                {/* Star Rating */}
+                                <div className="flex flex-col items-center justify-center gap-2 py-2">
+                                    <span className="text-xs font-semibold text-neutral-500">
+                                        Bagaimana pengalaman transaksi Anda?
+                                    </span>
+                                    <div className="flex items-center gap-1.5">
+                                        {[1, 2, 3, 4, 5].map((star) => (
+                                            <button
+                                                key={star}
+                                                type="button"
+                                                onClick={() => setRating(star)}
+                                                onMouseEnter={() => setHoverRating(star)}
+                                                onMouseLeave={() => setHoverRating(0)}
+                                                className="p-1 cursor-pointer transition-transform hover:scale-110"
+                                            >
+                                                <Star
+                                                    className={`h-7 w-7 ${
+                                                        star <= (hoverRating || rating)
+                                                            ? 'text-amber-500 fill-amber-500'
+                                                            : 'text-neutral-300'
+                                                    }`}
+                                                />
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Tags Selection */}
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-neutral-700 block">Pilih Tag Ulasan</label>
+                                    <div className="flex flex-wrap gap-1.5">
+                                        {availableTags.map((tag) => (
+                                            <button
+                                                key={tag}
+                                                type="button"
+                                                onClick={() => toggleTag(tag)}
+                                                className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors cursor-pointer ${
+                                                    selectedTags.includes(tag)
+                                                        ? 'bg-emerald-50 border-emerald-500 text-emerald-800 font-bold'
+                                                        : 'bg-white border-neutral-200 text-neutral-600 hover:bg-neutral-50'
+                                                }`}
+                                            >
+                                                {tag}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Review Text */}
+                                <div className="space-y-1">
+                                    <label className="text-xs font-bold text-neutral-700 block">Catatan Ulasan (Opsional)</label>
+                                    <textarea
+                                        value={reviewText}
+                                        onChange={(e) => setReviewText(e.target.value)}
+                                        placeholder="Tuliskan ulasan mengenai kualitas produk atau pelayanan supplier..."
+                                        rows={3}
+                                        className="w-full rounded-xl border border-neutral-200 p-3 text-xs outline-none focus:border-[#2e5a36] focus:ring-1 focus:ring-[#2e5a36]"
+                                    />
+                                </div>
+
+                                <button
+                                    type="submit"
+                                    disabled={rating === 0 || isSubmittingRating}
+                                    className="w-full bg-[#2e5a36] hover:bg-[#234529] text-white py-2.5 rounded-xl text-xs font-bold shadow-md disabled:opacity-50 cursor-pointer"
+                                >
+                                    {isSubmittingRating ? 'Mengirim...' : 'Kirim Ulasan'}
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                )}
             </AppLayout>
         );
     }
@@ -651,6 +813,93 @@ export default function Dashboard({ stats, recentOrders, transactions = [], buye
                     </div>
                 </div>
             </div>
+
+            {/* Rating Modal */}
+            {isRatingModalOpen && selectedRatingOrder && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4">
+                    <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-xl space-y-5 border border-neutral-100">
+                        <div className="flex items-center justify-between">
+                            <h3 className="text-base font-extrabold text-[#2e5a36]">Berikan Ulasan</h3>
+                            <button
+                                onClick={handleCloseRatingModal}
+                                className="rounded-full p-1 text-neutral-400 hover:bg-neutral-100 cursor-pointer"
+                            >
+                                <X className="h-4 w-4" />
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleSubmitRating} className="space-y-4">
+                            {/* Star Rating */}
+                            <div className="flex flex-col items-center justify-center gap-2 py-2">
+                                <span className="text-xs font-semibold text-neutral-500">
+                                    Bagaimana pengalaman transaksi Anda?
+                                </span>
+                                <div className="flex items-center gap-1.5">
+                                    {[1, 2, 3, 4, 5].map((star) => (
+                                        <button
+                                            key={star}
+                                            type="button"
+                                            onClick={() => setRating(star)}
+                                            onMouseEnter={() => setHoverRating(star)}
+                                            onMouseLeave={() => setHoverRating(0)}
+                                            className="p-1 cursor-pointer transition-transform hover:scale-110"
+                                        >
+                                            <Star
+                                                className={`h-7 w-7 ${
+                                                    star <= (hoverRating || rating)
+                                                        ? 'text-amber-500 fill-amber-500'
+                                                        : 'text-neutral-300'
+                                                }`}
+                                            />
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Tags Selection */}
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold text-neutral-700 block">Pilih Tag Ulasan</label>
+                                <div className="flex flex-wrap gap-1.5">
+                                    {availableTags.map((tag) => (
+                                        <button
+                                            key={tag}
+                                            type="button"
+                                            onClick={() => toggleTag(tag)}
+                                            className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors cursor-pointer ${
+                                                selectedTags.includes(tag)
+                                                    ? 'bg-emerald-50 border-emerald-500 text-emerald-800 font-bold'
+                                                    : 'bg-white border-neutral-200 text-neutral-600 hover:bg-neutral-50'
+                                            }`}
+                                        >
+                                            {tag}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Review Text */}
+                            <div className="space-y-1">
+                                <label className="text-xs font-bold text-neutral-700 block">Catatan Ulasan (Opsional)</label>
+                                <textarea
+                                    value={reviewText}
+                                    onChange={(e) => setReviewText(e.target.value)}
+                                    placeholder="Tuliskan ulasan mengenai kualitas produk atau pelayanan supplier..."
+                                    rows={3}
+                                    className="w-full rounded-xl border border-neutral-200 p-3 text-xs outline-none focus:border-[#2e5a36] focus:ring-1 focus:ring-[#2e5a36]"
+                                />
+                            </div>
+
+                            <button
+                                type="submit"
+                                disabled={rating === 0 || isSubmittingRating}
+                                className="w-full bg-[#2e5a36] hover:bg-[#234529] text-white py-2.5 rounded-xl text-xs font-bold shadow-md disabled:opacity-50 cursor-pointer"
+                            >
+                                {isSubmittingRating ? 'Mengirim...' : 'Kirim Ulasan'}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            )}
         </AppLayout>
     );
 }
