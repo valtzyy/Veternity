@@ -120,7 +120,41 @@ export default function Show({ product, relatedProducts, isFavorited }: Props) {
         { title: product.title, href: `/products/${product.id}` },
     ];
 
+    const isOutOfStock = product.stock <= 0;
+
+    const handleDirectBuy = () => {
+        if (isOutOfStock) {
+            alert('Stok produk telah habis.');
+            return;
+        }
+
+        if (!currentUser) {
+            router.get(route('login'));
+            return;
+        }
+
+        if (currentUser.role !== 'buyer') {
+            alert('Hanya akun Pembeli (buyer) yang dapat melakukan pembayaran.');
+            return;
+        }
+
+        if (currentUser.id === product.seller.id) {
+            alert('Anda tidak bisa membeli produk Anda sendiri.');
+            return;
+        }
+
+        router.post(route('negotiations.store'), {
+            product_id: product.id,
+            buy_now: true,
+        });
+    };
+
     const handleNegotiate = () => {
+        if (isOutOfStock) {
+            alert('Stok produk telah habis.');
+            return;
+        }
+
         if (!currentUser) {
             router.get(route('login'));
             return;
@@ -241,14 +275,27 @@ export default function Show({ product, relatedProducts, isFavorited }: Props) {
 
                             {/* Buttons */}
                             <div className="flex flex-col sm:flex-row gap-4 mb-6">
-                                <button className="flex-1 bg-[#2e5a36] hover:bg-[#234529] text-white py-4 rounded-2xl font-bold transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer">
-                                    <CreditCard className="h-5 w-5" /> Bayar Sekarang
+                                <button
+                                    onClick={handleDirectBuy}
+                                    disabled={isOutOfStock}
+                                    className={`flex-1 py-4 rounded-2xl font-bold transition-all flex items-center justify-center gap-2 ${
+                                        isOutOfStock
+                                            ? 'bg-neutral-200 text-neutral-400 cursor-not-allowed shadow-none'
+                                            : 'bg-[#2e5a36] hover:bg-[#234529] text-white shadow-md cursor-pointer'
+                                    }`}
+                                >
+                                    <CreditCard className="h-5 w-5" /> {isOutOfStock ? 'Stok Habis' : 'Bayar Sekarang'}
                                 </button>
                                 <button 
                                     onClick={handleNegotiate}
-                                    className="flex-1 border border-neutral-200 bg-white hover:bg-neutral-50 text-[#2e5a36] py-4 rounded-2xl font-bold transition-all shadow-xs flex items-center justify-center gap-2 cursor-pointer"
+                                    disabled={isOutOfStock}
+                                    className={`flex-1 border py-4 rounded-2xl font-bold transition-all flex items-center justify-center gap-2 ${
+                                        isOutOfStock
+                                            ? 'border-neutral-200 bg-neutral-100 text-neutral-400 cursor-not-allowed shadow-none'
+                                            : 'border-neutral-200 bg-white hover:bg-neutral-50 text-[#2e5a36] shadow-xs cursor-pointer'
+                                    }`}
                                 >
-                                    <MessageSquare className="h-5 w-5" /> Negosiasi
+                                    <MessageSquare className="h-5 w-5" /> {isOutOfStock ? 'Stok Habis' : 'Negosiasi'}
                                 </button>
                             </div>
 
@@ -470,7 +517,15 @@ export default function Show({ product, relatedProducts, isFavorited }: Props) {
                                 </div>
 
                                 <div className="flex flex-col gap-3 w-full">
-                                    <button className="w-full bg-[#2e5a36] hover:bg-[#234529] text-white py-3.5 rounded-2xl font-bold transition-all shadow-md flex items-center justify-center gap-2">
+                                    <button
+                                        onClick={handleNegotiate}
+                                        disabled={isOutOfStock}
+                                        className={`w-full py-3.5 rounded-2xl font-bold transition-all flex items-center justify-center gap-2 ${
+                                            isOutOfStock
+                                                ? 'bg-neutral-200 text-neutral-400 cursor-not-allowed shadow-none'
+                                                : 'bg-[#2e5a36] hover:bg-[#234529] text-white shadow-md cursor-pointer'
+                                        }`}
+                                    >
                                         <MessageCircle className="h-5 w-5" /> Chat
                                     </button>
                                     <button className="w-full border border-neutral-200 bg-white hover:bg-neutral-50 text-neutral-700 py-3.5 rounded-2xl font-bold transition-all flex items-center justify-center gap-2">

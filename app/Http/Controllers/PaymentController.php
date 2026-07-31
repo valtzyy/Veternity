@@ -147,11 +147,22 @@ class PaymentController extends Controller
             'payment_method' => 'required|string|in:bank_transfer,e_wallet,reguna_escrow',
         ]);
 
+        $product = $order->negotiation->product;
+        if ($product && $product->stock < $order->final_quantity) {
+            return back()->withErrors(['message' => 'Stok produk tidak mencukupi atau telah habis. Harap tunggu seller memperbarui stok.']);
+        }
+
         // Update order status
         $order->update([
             'status' => 'paid',
             'payment_method' => $validated['payment_method'],
         ]);
+
+        // Deduct product stock
+        if ($product) {
+            $newStock = max(0, $product->stock - $order->final_quantity);
+            $product->update(['stock' => $newStock]);
+        }
 
         // Create transaction payment
         Payment::create([
