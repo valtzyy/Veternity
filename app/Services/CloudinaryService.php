@@ -16,9 +16,9 @@ class CloudinaryService
      */
     public static function upload(UploadedFile $file, string $folder = 'products'): string
     {
-        $cloudName = env('CLOUDINARY_CLOUD_NAME');
-        $apiKey = env('CLOUDINARY_API_KEY');
-        $apiSecret = env('CLOUDINARY_API_SECRET');
+        $cloudName = config('cloudinary.cloud_name');
+        $apiKey = config('cloudinary.api_key');
+        $apiSecret = config('cloudinary.api_secret');
 
         if (empty($cloudName) || empty($apiKey) || empty($apiSecret)) {
             // Local fallback upload

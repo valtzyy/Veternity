@@ -4,7 +4,7 @@ import { NavUser } from '@/components/nav-user';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from '@/components/ui/sidebar';
 import { type NavItem } from '@/types';
 import { Link, usePage } from '@inertiajs/react';
-import { BookOpen, Folder, LayoutGrid, Users, ClipboardCheck, ShoppingBag, MessageSquare, Star } from 'lucide-react';
+import { BookOpen, Folder, LayoutGrid, Users, ClipboardCheck, ShoppingBag, MessageSquare, Star, UserCircle2 } from 'lucide-react';
 import AppLogo from './app-logo';
 
 const footerNavItems: NavItem[] = [
@@ -43,6 +43,11 @@ export function AppSidebar() {
                 title: 'Moderate Products',
                 url: '/admin/products',
                 icon: ClipboardCheck,
+            },
+            {
+                title: 'Profil',
+                url: '/settings/profile',
+                icon: UserCircle2,
             }
         );
     } else if (userRole === 'seller') {
@@ -75,6 +80,11 @@ export function AppSidebar() {
                 title: 'Analitik',
                 url: '/seller/analytics',
                 icon: LayoutGrid,
+            },
+            {
+                title: 'Profil',
+                url: '/settings/profile',
+                icon: UserCircle2,
             }
         );
     } else {
@@ -102,9 +112,9 @@ export function AppSidebar() {
                 icon: Star,
             },
             {
-                title: 'Profil Bisnis',
-                url: '/buyer/profile',
-                icon: Users,
+                title: 'Profil',
+                url: '/settings/profile',
+                icon: UserCircle2,
             }
         );
     }
